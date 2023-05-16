@@ -3,7 +3,9 @@
 
 #include "GameWorld.h"
 #include "GameConstants.h"
+#include "Actor.h"
 #include <string>
+#include <memory>
 
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
 
@@ -25,7 +27,8 @@ public:
 		return *this;
 	}
 
-
+private:
+	std::unique_ptr<IceMan> player = nullptr;
 
 };
 
