@@ -1,28 +1,34 @@
-#include "StudentWorld.h"
+#ifndef STUDENTWORLD_H_
+#define STUDENTWORLD_H_
+
+#include "GameWorld.h"
+#include "GameConstants.h"
 #include "Actor.h"
 #include <string>
+#include <memory>
 
-using namespace std;
+// Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
 
-IceMan* player = new IceMan(0, 30, 60, GraphObject::right, 1.0, 0);
-Ice* ic = new Ice();
-
-int StudentWorld::init() {
-	 
-	return GWSTATUS_CONTINUE_GAME;
-}
-
-
-int StudentWorld::move() {
-	player->doSomething();
-	return GWSTATUS_CONTINUE_GAME;
-}
-//void StudentWorld::cleanUp(){}
-GameWorld* createStudentWorld(string assetDir)
+class StudentWorld : public GameWorld
 {
-	return new StudentWorld(assetDir);
-}
+public:
+	StudentWorld(std::string assetDir)
+		: GameWorld(assetDir)
+	{
+	}
 
+	virtual int init();
 
-// Students:  Add code to this file (if you wish), StudentWorld.h, Actor.h and Actor.cpp
+	virtual int move();
 
+	virtual void cleanUp(){}
+	
+	StudentWorld& getWorld() {
+		return *this;
+	}
+
+	std::unique_ptr<IceMan> player = nullptr;
+
+};
+
+#endif // STUDENTWORLD_H_
