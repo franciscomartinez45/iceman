@@ -4,11 +4,10 @@
 
 using namespace std;
 
-IceMan* player = new IceMan(0, 30, 60, GraphObject::right, 1.0, 0);
 Ice* ic = new Ice();
 
 int StudentWorld::init() {
-	 
+	player = std::make_unique<IceMan>(getWorld(), 0, 30, 60, GraphObject::right, 1.0, 0);
 	return GWSTATUS_CONTINUE_GAME;
 }
 
