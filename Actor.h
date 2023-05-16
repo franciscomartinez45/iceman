@@ -32,16 +32,24 @@ class Ice {
 public:
 	Ice() {
 		for (int i{}; i < VIEW_WIDTH; i++) {
-			for (int j{}; j < VIEW_HEIGHT; j++)
-			iceObjects.push_back(new IceBlock(IID_ICE, i, j, GraphObject::right, .25, 3));
+			for (int j{}; j < VIEW_HEIGHT; j++) {
+				if (i < ((VIEW_WIDTH / 2) - 1) || i >((VIEW_WIDTH / 2) + 1) || (j < VIEW_HEIGHT / 2)) {
+					iceObjects[i, j] = new IceBlock(IID_ICE, i, j, GraphObject::right, .25, 3);
+				}
+			}
 		}
 	}
 	~Ice() {
-		iceObjects.clear();
+		for (int i{}; i < VIEW_WIDTH; i++) {
+			for (int j{}; j < VIEW_HEIGHT; j++) {
+				delete iceObjects[i, j];
+			}
+		}
 	}
 	
+	
 private:
-	std::vector<IceBlock*> iceObjects;
+	IceBlock* iceObjects[];
 
 };
 
