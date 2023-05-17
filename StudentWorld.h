@@ -26,6 +26,10 @@ public:
 	StudentWorld& getWorld() {
 		return *this;
 	}
+	
+	std::unique_ptr<Ice>& getIce() {
+		return ice;
+	}
 
 private:
 	std::unique_ptr<IceMan> player = nullptr;
