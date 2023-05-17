@@ -33,7 +33,7 @@ public:
 
 private:
 	std::unique_ptr<IceMan> player = nullptr;
-
+	std::unique_ptr<Ice> ice = nullptr;
 };
 
 #endif // STUDENTWORLD_H_
