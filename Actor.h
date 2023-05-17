@@ -34,10 +34,10 @@ public:
 
 class Ice {
 public:
-	Ice() {
-		for (int i{}; i < VIEW_WIDTH; i++) {
-			for (int j{}; j < VIEW_HEIGHT; j++) {
-				if (i < ((VIEW_WIDTH / 2) - 1) || i >((VIEW_WIDTH / 2) + 1) || (j < VIEW_HEIGHT / 2)) {
+	Ice() { //create an array of ice objects
+		for (int i{}; i < VIEW_WIDTH; i++) { //cover the width
+			for (int j{}; j < VIEW_HEIGHT; j++) { //cover the height
+				if (i < ((VIEW_WIDTH / 2) - 1) || i >((VIEW_WIDTH / 2) + 1) || (j < VIEW_HEIGHT / 2)) { //create a tunnel
 					iceObjects[i, j] = new IceBlock(IID_ICE, i, j, GraphObject::right, .25, 3);
 				}
 			}
@@ -46,7 +46,7 @@ public:
 	~Ice() {
 		for (int i{}; i < VIEW_WIDTH; i++) {
 			for (int j{}; j < VIEW_HEIGHT; j++) {
-				delete iceObjects[i, j];
+				delete iceObjects[i, j]; //delete 2d array
 			}
 		}
 	}

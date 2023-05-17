@@ -4,16 +4,19 @@
 
 using namespace std;
 
-Ice* ic = new Ice();
+auto p = std::make_unique<Ice>();
+//Ice* ic = new Ice();
+
+
 
 int StudentWorld::init() {
-	player = std::make_unique<IceMan>(getWorld(), 0, 30, 60, GraphObject::right, 1.0, 0);
+	StudentWorld::player = std::make_unique<IceMan>(getWorld(), 0, 30, 60, GraphObject::right, 1.0, 0);
 	return GWSTATUS_CONTINUE_GAME;
 }
 
 
 int StudentWorld::move() {
-	player->doSomething();
+	StudentWorld::player->doSomething();
 	return GWSTATUS_CONTINUE_GAME;
 }
 //void StudentWorld::cleanUp(){}

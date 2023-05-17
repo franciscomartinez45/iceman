@@ -5,7 +5,7 @@
 
 void IceMan::doSomething() {
 	int key;
-	if (w.getKey(key)) {
+	if (IceMan::w.getKey(key)) {
 		Direction new_dir = none;
 		switch (key) {
 		case KEY_PRESS_UP:
