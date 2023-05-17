@@ -4,6 +4,21 @@
 
 
 void IceMan::doSomething() {
+	// remove intersecting ice
+	bool destroyed_ice = false;
+	auto& ice = w.getIce();
+	for (auto i : std::ranges::iota_view(getX(), getX() + ACTOR_HEIGHT)) {
+		for (auto j : std::ranges::iota_view(getY(), getY() + ACTOR_HEIGHT)) {
+			auto& block = ice->getBlock(i, j);
+			if (block != nullptr) {
+				block.reset();
+				destroyed_ice = true;
+			}
+		}
+	}
+	if (destroyed_ice)
+		w.playSound(SOUND_DIG);
+	
 	int key;
 	if (IceMan::w.getKey(key)) {
 		Direction new_dir = none;
