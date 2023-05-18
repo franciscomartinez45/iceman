@@ -8,6 +8,7 @@
 
 const int ACTOR_WIDTH_LIMIT = VIEW_WIDTH - 4;
 const int ACTOR_HEIGHT_LIMIT = VIEW_HEIGHT - 4;
+const int MAX_SQUIRT_TRAVEL = 4;
 
 // Students:  Add code to this file, Actor.cpp, StudentWorld.h, and StudentWorld.cpp
 class StudentWorld; // Gordian knotting the circular dependency
@@ -21,17 +22,47 @@ public:
 
 	virtual void doSomething() { }
 };
+class squirt : public GraphObject {
+public:
+	squirt(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+		: GraphObject(imageID, startX, startY, dir, size, depth) {
+		setVisible(true);
+	}
+	void doSomething();
+	
+	squirt& getSquirt() {
+		return *this;
+	}
+	
+	
+	
+};
+
+class Sonar : GraphObject {
+public:
+	Sonar(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+		: GraphObject(imageID, startX, startY, dir, size, depth){
+		setVisible(true);
+	}
+	
+};
 
 // further class modualarization to come
 class IceMan : public Actor {
 public:
 	IceMan(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Actor(imageID, startX, startY, dir, size, depth), w(world)  {
+		: Actor(imageID, startX, startY, dir, size, depth), w(world){
 		setVisible(true);
 	}
 	void doSomething();
 
 	StudentWorld& w; // passed in during init()
+	IceMan& getPlayer() {
+		return *this;
+	}
+	
+	std::unique_ptr<squirt> squirt_item = nullptr;
+
 };
 
 class IceBlock : public Actor {

@@ -30,10 +30,14 @@ public:
 	std::unique_ptr<Ice>& getIce() {
 		return ice;
 	}
+	std::unique_ptr<Sonar>& getSonar() {
+		return sonar;
+	}
 
 private:
 	std::unique_ptr<IceMan> player = nullptr;
 	std::unique_ptr<Ice> ice = nullptr;
+	std::unique_ptr<Sonar> sonar = nullptr;
 };
 
 #endif // STUDENTWORLD_H_

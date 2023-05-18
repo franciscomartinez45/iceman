@@ -2,11 +2,11 @@
 #include "StudentWorld.h"
 
 
-
 void IceMan::doSomething() {
 	// remove intersecting ice
 	bool destroyed_ice = false;
 	auto& ice = w.getIce();
+	auto& sonar = w.getSonar();
 	for (auto i : std::ranges::iota_view(getX(), getX() + ACTOR_HEIGHT)) {
 		for (auto j : std::ranges::iota_view(getY(), getY() + ACTOR_HEIGHT)) {
 			auto& block = ice->getBlock(i, j);
@@ -14,6 +14,7 @@ void IceMan::doSomething() {
 				block.reset();
 				destroyed_ice = true;
 			}
+			
 		}
 	}
 	if (destroyed_ice)
@@ -35,16 +36,21 @@ void IceMan::doSomething() {
 		case KEY_PRESS_RIGHT:
 			new_dir = right;
 			break;
-		case KEY_PRESS_SPACE:
-			// TODO
-			break;
-		case KEY_PRESS_TAB:
-			// SEE ABOVE
-			break;
-		case KEY_PRESS_ESCAPE:
-			// CONTINUE SEEING ABOVE
-			break;
-		}
+		case KEY_PRESS_SPACE://squirt
+			
+				squirt_item= std::make_unique<squirt>(IID_WATER_SPURT, IceMan::getX(),  IceMan::getY(), IceMan::getDirection(), 1.0, 1);
+				squirt_item->doSomething();
+				w.playSound(SOUND_PLAYER_SQUIRT);
+				
+				break;
+
+			case KEY_PRESS_TAB:
+				 //SEE ABOVE
+				break;
+			case KEY_PRESS_ESCAPE:
+				// CONTINUE SEEING ABOVE
+				break;
+			}
 		
 		if (new_dir != none) {
 			if (new_dir != getDirection())
@@ -79,3 +85,34 @@ void IceMan::doSomething() {
 } // glorious bracket staircase
 
 // Students:  Add code to this file (if you wish), Actor.h, StudentWorld.h, and StudentWorld.cpp
+void squirt::doSomething() {
+	
+	auto new_pos = std::make_pair<int, int>(getSquirt().getX(), getSquirt().getY());
+	int distance{};
+
+	while (distance < 4) {
+		
+		switch (getSquirt().getDirection()) {
+		case up:
+			new_pos.second++;
+			break;
+		case down:
+			new_pos.second--;
+			break;
+		case left:
+			new_pos.first--;
+			break;
+		case right:
+			new_pos.first++;
+			break;
+		}
+		
+		getSquirt().moveTo(new_pos.first, new_pos.second);
+		distance++;
+	}
+	
+	
+
+	
+	
+}
