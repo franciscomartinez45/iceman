@@ -37,11 +37,9 @@ void IceMan::doSomething() {
 			new_dir = right;
 			break;
 		case KEY_PRESS_SPACE://squirt
-			
 				squirt_item= std::make_unique<squirt>(IID_WATER_SPURT, IceMan::getX(),  IceMan::getY(), IceMan::getDirection(), 1.0, 1);
 				squirt_item->doSomething();
 				w.playSound(SOUND_PLAYER_SQUIRT);
-				
 				break;
 
 			case KEY_PRESS_TAB:
@@ -80,6 +78,7 @@ void IceMan::doSomething() {
 					new_pos = prev_pos;
 				moveTo(new_pos.first, new_pos.second);
 			}
+			
 		}
 	}
 } // glorious bracket staircase
