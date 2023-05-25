@@ -12,14 +12,20 @@ const int ACTOR_HEIGHT_LIMIT = VIEW_HEIGHT - 4;
 // Students:  Add code to this file, Actor.cpp, StudentWorld.h, and StudentWorld.cpp
 class StudentWorld; // Gordian knotting the circular dependency
 
-class Actor : public GraphObject {
+class Object : public GraphObject {
 public:
-	Actor(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+	Object(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
 	: GraphObject(imageID, startX, startY, dir, size, depth) {
 		setVisible(true);
 	}
 
-	virtual void doSomething() { }
+	virtual void doSomething() = 0;
+};
+
+class Actor : public Object {
+public:
+	Actor(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+		: Object(imageID, startX, startY, dir, size, depth){}
 };
 
 const int ICEMAN_MAX_HEALTH = 100;
@@ -43,10 +49,16 @@ private:
 	StudentWorld& w; // passed in during init()
 };
 
-class IceBlock : public Actor {
+class Prop : public Object {
+public:
+	Prop(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+		: Object(imageID, startX, startY, dir, size, depth) {}
+};
+
+class IceBlock : public Prop {
 public:
 	IceBlock(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Actor(imageID, startX, startY, dir, size, depth) {
+		: Prop(imageID, startX, startY, dir, size, depth) {
 		setVisible(true);
 	}
 };
