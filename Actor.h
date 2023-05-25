@@ -13,19 +13,29 @@ const int MAX_SQUIRT_TRAVEL = 4;
 // Students:  Add code to this file, Actor.cpp, StudentWorld.h, and StudentWorld.cpp
 class StudentWorld; // Gordian knotting the circular dependency
 
-class Actor : public GraphObject {
+class Actors : virtual public GraphObject {
 public:
-	Actor(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+	Actors(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
 	: GraphObject(imageID, startX, startY, dir, size, depth) {
 		setVisible(true);
 	}
 
 	virtual void doSomething() { }
+	
+	
 };
-class squirt : public GraphObject {
+
+class Props : virtual public GraphObject {
+public:
+	Props(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+		: GraphObject(imageID, startX, startY, dir, size, depth) {
+		setVisible(true);
+	}
+};
+class squirt : public Props {
 public:
 	squirt(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: GraphObject(imageID, startX, startY, dir, size, depth) {
+		: Props(imageID, startX, startY, dir, size, depth), GraphObject(imageID, startX, startY, dir, size, depth) {
 		setVisible(true);
 	}
 	void doSomething();
@@ -38,20 +48,22 @@ public:
 	
 };
 
-class Sonar : GraphObject {
+class Sonar : public Props {
 public:
 	Sonar(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: GraphObject(imageID, startX, startY, dir, size, depth){
+		: Props(imageID, startX, startY, dir, size, depth), GraphObject(imageID, startX, startY, dir, size, depth) {
 		setVisible(true);
 	}
+	void doSomething();
 	
+
 };
 
 // further class modualarization to come
-class IceMan : public Actor {
+class IceMan : public Actors {
 public:
 	IceMan(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Actor(imageID, startX, startY, dir, size, depth), w(world){
+		: Actors(imageID, startX, startY, dir, size, depth), w(world), GraphObject(imageID, startX, startY, dir, size, depth) {
 		setVisible(true);
 	}
 	void doSomething();
@@ -65,10 +77,10 @@ public:
 
 };
 
-class IceBlock : public Actor {
+class IceBlock : public Props {
 public:
 	IceBlock(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Actor(imageID, startX, startY, dir, size, depth) {
+		: Props(imageID, startX, startY, dir, size, depth), GraphObject(imageID, startX, startY, dir, size, depth) {
 		setVisible(true);
 	}
 };

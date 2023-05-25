@@ -43,7 +43,7 @@ void IceMan::doSomething() {
 				break;
 
 			case KEY_PRESS_TAB:
-				 //SEE ABOVE
+				
 				break;
 			case KEY_PRESS_ESCAPE:
 				// CONTINUE SEEING ABOVE
@@ -86,7 +86,7 @@ void IceMan::doSomething() {
 // Students:  Add code to this file (if you wish), Actor.h, StudentWorld.h, and StudentWorld.cpp
 void squirt::doSomething() {
 	
-	auto new_pos = std::make_pair<int, int>(getSquirt().getX(), getSquirt().getY());
+	/*auto new_pos = std::make_pair<int, int>(getSquirt().getX(), getSquirt().getY());
 	int distance{};
 
 	while (distance < 4) {
@@ -107,11 +107,16 @@ void squirt::doSomething() {
 		}
 		
 		getSquirt().moveTo(new_pos.first, new_pos.second);
-		distance++;
-	}
+		distance++;*/
+
+
 	
 	
 
 	
 	
+}
+
+void Sonar::doSomething()
+{
 }
