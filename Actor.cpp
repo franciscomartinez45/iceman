@@ -1,7 +1,15 @@
 #include "Actor.h"
 #include "StudentWorld.h"
 
-
+// health is almost never set in the game,
+// so health can only be incremented or decremented
+void IceMan::offsetHealth(int offset) {
+	health += offset;
+	if (health > max_health)
+		health = max_health;
+	else if (health < 0)
+		health = 0;
+}
 
 void IceMan::doSomething() {
 	// remove intersecting ice
