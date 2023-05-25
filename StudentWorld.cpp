@@ -36,12 +36,11 @@ void StudentWorld::setStatusBar() {
 
 	// level number
 	status << std::setfill(' ') << std::setw(2);
-	status << "1" << separator;
+	status << getLevel() << separator;
 
 	// lives
 	status << std::setfill(' ') << std::setw(1);
-	status << "1" << separator;
-
+	status << getLives() << separator;
 
 	// health
 	status << std::setfill(' ') << std::setw(3);
@@ -49,23 +48,23 @@ void StudentWorld::setStatusBar() {
 	
 	// water
 	status << std::setfill(' ') << std::setw(2);
-	status << "1" << separator;
+	status << "?" << separator;
 
 	// gold
 	status << std::setfill(' ') << std::setw(2);
-	status << "1" << separator;
+	status << "?" << separator;
 
 	// oil left
 	status << std::setfill(' ') << std::setw(2);
-	status << "1" << separator;
+	status << "?" << separator;
 
 	// sonar
 	status << std::setfill(' ') << std::setw(2);
-	status << "1" << separator;
+	status << "?" << separator;
 
 	// score
 	status << std::setfill('0') << std::setw(6);
-	status << "1337";
+	status << getScore();
 
 	setGameStatText(status.str());
 }
