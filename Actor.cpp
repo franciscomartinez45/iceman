@@ -19,18 +19,8 @@ void IceMan::offsetHealth(int offset) {
 
 void IceMan::doSomething() {
 	// remove intersecting ice
-	bool destroyed_ice = false;
-	auto& ice = w.getIce();
-	for (auto i : std::ranges::iota_view(getX(), getX() + ACTOR_HEIGHT)) {
-		for (auto j : std::ranges::iota_view(getY(), getY() + ACTOR_HEIGHT)) {
-			auto& block = ice->getBlock(i, j);
-			if (block != nullptr) {
-				block.reset();
-				destroyed_ice = true;
-			}
-		}
-	}
-	if (destroyed_ice)
+	
+	if (w.getIce()->destroyIce(getX(), getY(), ACTOR_HEIGHT, ACTOR_HEIGHT))
 		w.playSound(SOUND_DIG);
 	
 	int key;
@@ -91,3 +81,19 @@ void IceMan::doSomething() {
 		}
 	}
 } // glorious bracket staircase
+
+// removes ice in an x_size by y_size block from the given coordinates
+// returns false if no ice was in the area, true otherwise
+bool Ice::destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size) {
+	bool destroyed_ice = false;
+	for (auto i : std::ranges::iota_view(x, x + x_size)) {
+		for (auto j : std::ranges::iota_view(y, y + y_size)) {
+			auto& block = getBlock(i, j);
+			if (block != nullptr) {
+				block.reset();
+				destroyed_ice = true;
+			}
+		}
+	}
+	return destroyed_ice;
+}
