@@ -1,5 +1,11 @@
 #include "Actor.h"
 #include "StudentWorld.h"
+#include <cmath>
+
+// distance formula time
+float Object::getDistanceTo(Object& other) {
+	return sqrt(pow(this->getX(), other.getX()) + pow(this->getY(), other.getY()));
+}
 
 // health is almost never set in the game,
 // so health can only be incremented or decremented
@@ -85,5 +91,3 @@ void IceMan::doSomething() {
 		}
 	}
 } // glorious bracket staircase
-
-// Students:  Add code to this file (if you wish), Actor.h, StudentWorld.h, and StudentWorld.cpp
