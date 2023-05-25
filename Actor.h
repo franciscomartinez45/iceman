@@ -19,6 +19,8 @@ public:
 		setVisible(true);
 	}
 
+	float getDistanceTo(Object& other);
+
 	virtual void doSomething() = 0;
 };
 
@@ -33,9 +35,8 @@ const int ICEMAN_MAX_HEALTH = 100;
 // further class modualarization to come
 class IceMan : public Actor {
 public:
-	IceMan(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Actor(imageID, startX, startY, dir, size, depth), w(world)  {
-		setVisible(true);
+	IceMan(StudentWorld& world, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+		: Actor(IID_PLAYER, startX, startY, dir, size, depth), w(world)  {
 	}
 	void doSomething();
 
@@ -49,18 +50,31 @@ private:
 	StudentWorld& w; // passed in during init()
 };
 
+const int ICE_DEPTH = 3;
+const int GOODIE_DEPTH = 2;
+
 class Prop : public Object {
 public:
-	Prop(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+	Prop(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
 		: Object(imageID, startX, startY, dir, size, depth) {}
+};
+
+class Water : public Prop {
+public:
+	Water(int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = ICE_DEPTH)
+		: Prop(IID_WATER_POOL, startX, startY, dir, size, depth) {
+	}
+
+	void doSomething() { }
 };
 
 class IceBlock : public Prop {
 public:
-	IceBlock(int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Prop(imageID, startX, startY, dir, size, depth) {
-		setVisible(true);
+	IceBlock(int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = ICE_DEPTH)
+		: Prop(IID_ICE, startX, startY, dir, size, depth) {
 	}
+
+	void doSomething() { }
 };
 
 const int TUNNEL_START_X = 30;
@@ -76,7 +90,7 @@ public:
 		for (auto i : std::ranges::iota_view(0, VIEW_WIDTH)) {
 			for (auto j : std::ranges::iota_view(0, VIEW_HEIGHT - ACTOR_HEIGHT)) {
 				if ((i < TUNNEL_START_X) || (i > TUNNEL_END_X) || (j <= TUNNEL_END_Y)) {
-					iceObjects[i][j] = std::make_unique<IceBlock>(IID_ICE, i, j, GraphObject::right, .25, 3);
+					iceObjects[i][j] = std::make_unique<IceBlock>(i, j);
 				}
 			}
 		}
@@ -98,5 +112,3 @@ private:
 
 
 #endif // ACTOR_H_
-
-
