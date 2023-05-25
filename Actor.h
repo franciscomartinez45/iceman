@@ -22,6 +22,8 @@ public:
 	virtual void doSomething() { }
 };
 
+const int ICEMAN_MAX_HEALTH = 100;
+
 // further class modualarization to come
 class IceMan : public Actor {
 public:
@@ -31,6 +33,13 @@ public:
 	}
 	void doSomething();
 
+	int getHealth() { return health; }
+
+	void offsetHealth(int offset);
+
+private:
+	int health = ICEMAN_MAX_HEALTH;
+	int max_health = ICEMAN_MAX_HEALTH;
 	StudentWorld& w; // passed in during init()
 };
 
