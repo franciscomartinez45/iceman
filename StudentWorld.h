@@ -8,7 +8,6 @@
 #include <memory>
 
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
-
 class StudentWorld : public GameWorld
 {
 public:
@@ -32,6 +31,10 @@ public:
 	}
 
 private:
+	int getPlayerHealth() { return player->getHealth(); }
+
+	void setStatusBar();
+
 	std::unique_ptr<IceMan> player = nullptr;
 	std::unique_ptr<Ice> ice = nullptr;
 };
