@@ -68,9 +68,11 @@ public:
 	void doSomething() { }
 };
 
+const double ICE_SIZE = 0.25;
+
 class IceBlock : public Prop {
 public:
-	IceBlock(int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = ICE_DEPTH)
+	IceBlock(int startX, int startY, Direction dir = right, double size = ICE_SIZE, unsigned int depth = ICE_DEPTH)
 		: Prop(IID_ICE, startX, startY, dir, size, depth) {
 	}
 
@@ -81,6 +83,8 @@ const int TUNNEL_START_X = 30;
 const int TUNNEL_END_X = 33;
 const int TUNNEL_END_Y = 4;
 const int ACTOR_HEIGHT = 4;
+
+const unsigned int DEFAULT_ICE_DESTROY_RANGE = 4;
 
 class Ice {
 public:
@@ -102,6 +106,8 @@ public:
 		return iceObjects.at(x).at(y);
 	}
 	
+	bool destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size);
+
 private:
 	// a less disgusting way to write this would be appreciated
 	// using namespace std would just be a stopgap
