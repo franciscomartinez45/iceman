@@ -10,7 +10,7 @@ using namespace std;
 const int BASE_NUM_OBJECTS = 20;
 
 int StudentWorld::init() {
-	StudentWorld::player = std::make_unique<IceMan>(getWorld(), 0, 30, 60, GraphObject::right, 1.0, 0);
+	StudentWorld::player = std::make_unique<IceMan>(getWorld(), 30, 60);
 	ice = std::make_unique<Ice>();
 	actors.resize(BASE_NUM_OBJECTS);
 	goodies.resize(BASE_NUM_OBJECTS);
