@@ -6,8 +6,7 @@
 #include "Actor.h"
 #include <string>
 #include <memory>
-
-// Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
+#include <list>
 
 class StudentWorld : public GameWorld
 {
@@ -35,14 +34,23 @@ public:
 		return ice;
 	}
 
+	std::unique_ptr<IceMan>& getPlayer() {
+		return player;
+	}
+
 private:
-	int getPlayerHealth() { return player->getHealth(); }
+	bool isIntersectingObject(unsigned int x, unsigned int y);
+	bool isIntersectingObject(std::pair<unsigned int, unsigned int> p);
+
+	void spawnWater();
+
+	int getPlayerHealth() { return double(player->getHealth()) / double(ICEMAN_MAX_HEALTH) * 100; }
 
 	void setStatusBar();
 
 	std::unique_ptr<IceMan> player = nullptr;
-	std::vector<std::unique_ptr<Actor>> actors;
-	std::vector<std::unique_ptr<Prop>> goodies;
+	std::list<std::unique_ptr<Actor>> actors;
+	std::list<std::unique_ptr<Prop>> goodies;
 	std::unique_ptr<Ice> ice = nullptr;
 };
 
