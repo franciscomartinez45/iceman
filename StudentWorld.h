@@ -8,6 +8,12 @@
 #include <memory>
 #include <list>
 
+enum class ObjectType {
+	Boulder,
+	Nugg,
+	Barrel
+};
+
 class StudentWorld : public GameWorld
 {
 public:
@@ -22,8 +28,10 @@ public:
 	virtual int move();
 
 	virtual void cleanUp(){
+		player.reset();
 		actors.clear();
 		goodies.clear();
+		ice.reset();
 	}
 	
 	StudentWorld& getWorld() {
@@ -38,11 +46,22 @@ public:
 		return player;
 	}
 
+	std::list<std::unique_ptr<Actor>>& getActors() {
+		return actors;
+	}
+
+	std::list<std::unique_ptr<Prop>>& getGoodies() {
+		return goodies;
+	}
+
 private:
 	bool isIntersectingObject(unsigned int x, unsigned int y);
 	bool isIntersectingObject(std::pair<unsigned int, unsigned int> p);
 
 	void spawnWater();
+	void spawnObjectInIce(ObjectType type);
+	bool vetIceSpawnCoords(std::pair<unsigned int, unsigned int> p,
+		unsigned int x_range_start, unsigned int x_range_end, unsigned int y_range_start, unsigned int y_range_end);
 
 	int getPlayerHealth() { return double(player->getHealth()) / double(ICEMAN_MAX_HEALTH) * 100; }
 

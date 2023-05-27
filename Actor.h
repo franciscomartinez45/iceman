@@ -22,6 +22,7 @@ public:
 	}
 
 	float getDistanceTo(Object& other);
+	float getDistanceTo(std::pair<unsigned int, unsigned int> p);
 	bool contains(unsigned int x, unsigned int y);
 	bool intersects(unsigned int x, unsigned int y, unsigned int x_size = ACTOR_HEIGHT, unsigned int y_size = ACTOR_HEIGHT);
 
@@ -35,10 +36,14 @@ protected:
 	StudentWorld& w; // passed in during init()
 };
 
+const int INSTAKILL_DAMAGE = 100;
+
 class Actor : public Object {
 public:
 	Actor(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
 		: Object(world, imageID, startX, startY, dir, size, depth){}
+
+	virtual void beAnnoyed(int annoy_value) =0;
 };
 
 const int ICEMAN_MAX_HEALTH = 10;
@@ -53,6 +58,7 @@ public:
 		: Actor(world, IID_PLAYER, startX, startY, dir, size, depth)  {
 	}
 	void doSomething();
+	void beAnnoyed(int annoy_value);
 
 	int getHealth() { return health; }
 	int getWater() { return water; }
@@ -65,9 +71,9 @@ public:
 			water = CAP_TWO_DIGITS;
 	}
 
-	void offsetHealth(int offset);
-
 private:
+	bool willCollide(std::pair<int, int> new_pos);
+
 	int health = ICEMAN_MAX_HEALTH;
 	int max_health = ICEMAN_MAX_HEALTH;
 	int water = ICEMAN_DEFAULT_WATER;
@@ -77,11 +83,14 @@ private:
 
 const int ICE_DEPTH = 3;
 const int GOODIE_DEPTH = 2;
+const int BOULDER_DEPTH = 1;
 
 class Prop : public Object {
 public:
 	Prop(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
 		: Object(world, imageID, startX, startY, dir, size, depth) {}
+
+	virtual bool isBoulder() { return false; }
 };
 
 class Water : public Prop {
@@ -95,6 +104,31 @@ public:
 
 private:
 	int lifespan = 0;
+};
+
+enum class BoulderState {
+	Stable,
+	Jostling,
+	Falling
+};
+
+const int BOULDER_WAIT_TIME = 30;
+
+class Boulder : public Prop {
+public:
+	Boulder(StudentWorld& world, int startX, int startY, Direction dir = down, double size = 1.0, unsigned int depth = BOULDER_DEPTH)
+		: Prop(world, IID_BOULDER, startX, startY, dir, size, depth) {}
+
+	void doSomething();
+
+	bool isBoulder() { return true; }
+
+private:
+	bool hasIceUnder();
+	bool hasBoulderUnder();
+
+	BoulderState state = BoulderState::Stable;
+	int jostleTimer = BOULDER_WAIT_TIME;
 };
 
 const double ICE_SIZE = 0.25;

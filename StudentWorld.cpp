@@ -11,6 +11,18 @@ int StudentWorld::init() {
 	StudentWorld::player = std::make_unique<IceMan>(getWorld(), 30, 60);
 	ice = std::make_unique<Ice>(getWorld());
 
+	// spawn ice goodies
+	int num_boulders = std::min(getLevel() / 2 + 2, unsigned int(9));
+	int num_nuggs = std::max(5 - getLevel(), unsigned int(2));
+	int num_barrels = std::min(getLevel() + 2, unsigned int(21));
+
+	for (auto i : std::ranges::iota_view(0, num_boulders))
+		spawnObjectInIce(ObjectType::Boulder);
+	for (auto i : std::ranges::iota_view(0, num_nuggs))
+		spawnObjectInIce(ObjectType::Nugg);
+	for (auto i : std::ranges::iota_view(0, num_barrels))
+		spawnObjectInIce(ObjectType::Barrel);
+
 	return GWSTATUS_CONTINUE_GAME;
 }
 
@@ -26,7 +38,7 @@ int StudentWorld::move() {
 		goodie->doSomething();
 
 	int goodie_chance = getLevel() * 25 + 300; // magic numbers - boss's orders
-	goodie_chance = 10; // testing
+	//goodie_chance = 10; // testing
 	if (rand() % goodie_chance == 0) {
 		if (rand() % CHANCE_OF_SONAR == 0) {
 			// spawn sonar here
@@ -37,6 +49,11 @@ int StudentWorld::move() {
 	}
 
 	// handle dead objects
+	if (player->isDead()) {
+		decLives();
+		return GWSTATUS_PLAYER_DIED;
+	}
+
 	for (auto it = actors.begin(); it != actors.end(); it++) {
 		if ((*it)->isDead()) {
 			it = actors.erase(it);
@@ -97,6 +114,56 @@ void StudentWorld::spawnWater() {
 	}
 }
 
+const int BOULDER_SPAWN_LIMIT = 20;
+void StudentWorld::spawnObjectInIce(ObjectType type) {
+	int x_range_end = VIEW_WIDTH - ACTOR_HEIGHT;
+	int y_range_start = (type != ObjectType::Boulder) ? 0 : BOULDER_SPAWN_LIMIT;
+	int y_range_end = VIEW_HEIGHT - (ACTOR_HEIGHT * 2);
+
+	// this method is somewhat inefficient,
+	// but the fact that it only runs at the
+	// start of each level means that it
+	// won't be much of an issue (hopefully)
+	std::pair<unsigned int, unsigned int> spawn_coords;
+	do {
+		spawn_coords = ice->getIceSquare(rand()).value(); // the map is guaranteed to have open ice squares at this point
+	} while (!vetIceSpawnCoords(spawn_coords, 0, x_range_end, y_range_start, y_range_end));
+
+	switch (type) {
+	case ObjectType::Boulder:
+		goodies.push_back(std::make_unique<Boulder>(getWorld(), spawn_coords.first, spawn_coords.second));
+		ice->destroyIce(spawn_coords.first, spawn_coords.second, ACTOR_HEIGHT, ACTOR_HEIGHT);
+		break;
+
+	case ObjectType::Nugg:
+		// TODO
+		break;
+	case ObjectType::Barrel:
+		// TODO
+		break;
+	}
+}
+
+const double MIN_SPAWN_RADIUS = 6.0;
+// determines whether or not a given coordinate set can spawn
+// tests whether it lies within the given range
+// and whether or not it falls too close to any preexisting objects
+bool StudentWorld::vetIceSpawnCoords(std::pair<unsigned int, unsigned int> p,
+	unsigned int x_range_start, unsigned int x_range_end, unsigned int y_range_start, unsigned int y_range_end) {
+	
+	// range checking
+	if (p.first < x_range_start or p.first > x_range_end or p.second < y_range_start or p.second > y_range_end)
+		return false;
+
+	// radius checking
+	for (auto& goodie : goodies) {
+		if (goodie->getDistanceTo(p) <= MIN_SPAWN_RADIUS) {
+			return false;
+		}
+	}
+	return true;
+}
+
 // VERY rudimentary for now
 // expect more features later
 void StudentWorld::setStatusBar() {
@@ -104,34 +171,42 @@ void StudentWorld::setStatusBar() {
 	const std::string separator = "  ";
 
 	// level number
+	status << "Lvl:";
 	status << std::setfill(' ') << std::setw(2);
 	status << getLevel() << separator;
 
 	// lives
+	status << "Lives:";
 	status << std::setfill(' ') << std::setw(1);
 	status << getLives() << separator;
 
 	// health
+	status << "Health:";
 	status << std::setfill(' ') << std::setw(3);
 	status << getPlayerHealth() << '%' << separator;
 	
 	// water
+	status << "Water:";
 	status << std::setfill(' ') << std::setw(2);
 	status << player->getWater() << separator;
 
 	// gold
+	status << "Gold:";
 	status << std::setfill(' ') << std::setw(2);
 	status << player->getNuggs() << separator;
 
 	// oil left
+	status << "Oil Left:";
 	status << std::setfill(' ') << std::setw(2);
 	status << "?" << separator;
 
 	// sonar
+	status << "Sonar:";
 	status << std::setfill(' ') << std::setw(2);
 	status << player->getSonar() << separator;
 
 	// score
+	status << "Pts:";
 	status << std::setfill('0') << std::setw(6);
 	status << getScore();
 
