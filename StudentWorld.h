@@ -30,7 +30,7 @@ public:
 	virtual void cleanUp(){
 		player.reset();
 		actors.clear();
-		goodies.clear();
+		props.clear();
 		ice.reset();
 	}
 	
@@ -50,8 +50,8 @@ public:
 		return actors;
 	}
 
-	std::list<std::unique_ptr<Prop>>& getGoodies() {
-		return goodies;
+	std::list<std::unique_ptr<Prop>>& getProps() {
+		return props;
 	}
 
 private:
@@ -69,7 +69,7 @@ private:
 
 	std::unique_ptr<IceMan> player = nullptr;
 	std::list<std::unique_ptr<Actor>> actors;
-	std::list<std::unique_ptr<Prop>> goodies;
+	std::list<std::unique_ptr<Prop>> props;
 	std::unique_ptr<Ice> ice = nullptr;
 };
 
