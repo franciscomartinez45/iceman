@@ -47,7 +47,10 @@ void IceMan::doSomething() {
 				// TODO
 				break;
 			case KEY_PRESS_TAB:
-				// SEE ABOVE
+				if (nuggs > 0) {
+					w.spawnPlayerNugg();
+					nuggs--;
+				}
 				break;
 			case KEY_PRESS_ESCAPE:
 				beAnnoyed(INSTAKILL_DAMAGE);
@@ -109,19 +112,26 @@ bool IceMan::willCollide(std::pair<int, int> new_pos) {
 }
 
 const unsigned int WATER_PICKUP_AMOUNT = 5;
-const unsigned int WATER_PICKUP_SCORE = 100;
+
+double Prop::getDistanceToPlayer() {
+	return getDistanceTo(*(w.getPlayer().get()));
+}
+
+double Prop::getDistanceToActor(std::unique_ptr<Actor>& actor) {
+	return getDistanceTo(*(actor.get()));
+}
 
 bool Prop::checkRadius() {
 	bool found = false;
 	if (affectPlayer) {
-		if (getDistanceTo(*(w.getPlayer().get())) <= radius) {
+		if (getDistanceToPlayer() <= radius) {
 			affectPlayerInRadius();
 			found = true;
 		}
 	}
 	if (affectActors) {
 		for (auto& actor : w.getActors()) {
-			if (getDistanceTo(*(actor.get())) <= ITEM_PICKUP_DISTANCE) {
+			if (getDistanceToActor(actor) <= ITEM_PICKUP_DISTANCE) {
 				affectObjectInRadius(actor);
 				found = true;
 			}
@@ -130,10 +140,18 @@ bool Prop::checkRadius() {
 	return found;
 } // glorious bracket staircase
 
+void Goodie::affectPlayerInRadius() {
+	dead = true;
+
+	w.playSound(obtainSoundEffect);
+	updatePlayerInventory();
+	w.increaseScore(scoreValue);
+}
+
 void Water::doSomething() {
 	if (!dead) {
 		if (!checkRadius()) {
-			if (lifespan == 0)
+			if (lifespan <= 0)
 				dead = true;
 			else
 				lifespan--;
@@ -141,12 +159,34 @@ void Water::doSomething() {
 	}
 }
 
-void Water::affectPlayerInRadius() {
-	dead = true;
-
-	w.playSound(SOUND_GOT_GOODIE);
+void Water::updatePlayerInventory() {
 	w.getPlayer()->addWater(WATER_PICKUP_AMOUNT);
-	w.increaseScore(WATER_PICKUP_SCORE);
+}
+
+bool HiddenGoodie::checkRadius() {
+	if (!isVisible() and getDistanceToPlayer() <= ITEM_REVEAL_DISTANCE) {
+		setVisible(true);
+		return false;
+	}
+		
+	return Goodie::checkRadius();
+}
+
+void Nugg::updatePlayerInventory() {
+	w.getPlayer()->addNuggs();
+}
+
+void Nugg::doSomething() {
+	if (!dead) {
+		checkRadius();
+
+		if (affectActors) {
+			if (lifespan <= 0)
+				dead = true;
+			else
+				lifespan--;
+		}
+	}
 }
 
 void Boulder::doSomething() {
