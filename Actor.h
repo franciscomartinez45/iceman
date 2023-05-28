@@ -85,24 +85,39 @@ const int ICE_DEPTH = 3;
 const int GOODIE_DEPTH = 2;
 const int BOULDER_DEPTH = 1;
 
+const double ITEM_PICKUP_DISTANCE = 3.0;
+
 class Prop : public Object {
 public:
-	Prop(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
-		: Object(world, imageID, startX, startY, dir, size, depth) {}
+	Prop(StudentWorld& world, bool affectsPlayer, bool affectsActors, double affectRadius, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: Object(world, imageID, startX, startY, dir, size, depth), affectPlayer(affectsPlayer), affectActors(affectsActors), radius(affectRadius) {}
 
 	virtual bool isBoulder() { return false; }
+
+protected:
+	bool checkRadius();
+	virtual void affectPlayerInRadius() =0;
+	virtual void affectObjectInRadius(std::unique_ptr<Actor>& object) =0;
+
+	bool affectPlayer;
+	bool affectActors;
+
+	double radius;
 };
 
 class Water : public Prop {
 public:
 	Water(StudentWorld& world, int level, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
-		: Prop(world, IID_WATER_POOL, startX, startY, dir, size, depth) {
+		: Prop(world, true, false, ITEM_PICKUP_DISTANCE, IID_WATER_POOL, startX, startY, dir, size, depth) {
 		lifespan = std::max(100, 300 - (10 * level));
 	}
 
 	void doSomething();
 
 private:
+	void affectPlayerInRadius();
+	void affectObjectInRadius(std::unique_ptr<Actor>& object) {}
+
 	int lifespan = 0;
 };
 
@@ -117,13 +132,16 @@ const int BOULDER_WAIT_TIME = 30;
 class Boulder : public Prop {
 public:
 	Boulder(StudentWorld& world, int startX, int startY, Direction dir = down, double size = 1.0, unsigned int depth = BOULDER_DEPTH)
-		: Prop(world, IID_BOULDER, startX, startY, dir, size, depth) {}
+		: Prop(world, true, true, ITEM_PICKUP_DISTANCE, IID_BOULDER, startX, startY, dir, size, depth) {}
 
 	void doSomething();
 
 	bool isBoulder() { return true; }
 
 private:
+	void affectPlayerInRadius();
+	void affectObjectInRadius(std::unique_ptr<Actor>& object);
+
 	bool hasIceUnder();
 	bool hasBoulderUnder();
 
@@ -133,10 +151,12 @@ private:
 
 const double ICE_SIZE = 0.25;
 
-class IceBlock : public Prop {
+// ice really doesn't need anything more than basic functionality
+class IceBlock : public GraphObject {
 public:
-	IceBlock(StudentWorld& world, int startX, int startY, Direction dir = right, double size = ICE_SIZE, unsigned int depth = ICE_DEPTH)
-		: Prop(world, IID_ICE, startX, startY, dir, size, depth) {
+	IceBlock(int startX, int startY, Direction dir = right, double size = ICE_SIZE, unsigned int depth = ICE_DEPTH)
+		: GraphObject(IID_ICE, startX, startY, dir, size, depth) {
+		setVisible(true);
 	}
 
 	void doSomething() { }
@@ -150,7 +170,7 @@ const unsigned int DEFAULT_ICE_DESTROY_RANGE = 4;
 
 class Ice {
 public:
-	Ice(StudentWorld& world);
+	Ice();
 	// smart pointers mean that we don't have to delete anything ourselves
 	
 	std::shared_ptr<IceBlock>& getBlock(int x, int y) {
