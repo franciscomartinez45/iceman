@@ -71,6 +71,12 @@ public:
 			water = CAP_TWO_DIGITS;
 	}
 
+	void addNuggs() {
+		nuggs++;
+		if (nuggs > CAP_TWO_DIGITS)
+			nuggs = CAP_TWO_DIGITS;
+	}
+
 private:
 	bool willCollide(std::pair<int, int> new_pos);
 
@@ -95,7 +101,10 @@ public:
 	virtual bool isBoulder() { return false; }
 
 protected:
-	bool checkRadius();
+	double getDistanceToPlayer();
+	double getDistanceToActor(std::unique_ptr<Actor>& object);
+
+	virtual bool checkRadius();
 	virtual void affectPlayerInRadius() =0;
 	virtual void affectObjectInRadius(std::unique_ptr<Actor>& object) =0;
 
@@ -105,20 +114,71 @@ protected:
 	double radius;
 };
 
-class Water : public Prop {
+class Goodie : public Prop {
+public:
+	Goodie(StudentWorld& world, int pointValue, const unsigned int soundID, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: Prop(world, true, false, ITEM_PICKUP_DISTANCE, imageID, startX, startY, dir, size, depth), obtainSoundEffect(soundID), scoreValue(pointValue) {}
+
+protected:
+	void affectPlayerInRadius();
+	virtual void updatePlayerInventory()=0;
+	
+	const unsigned int obtainSoundEffect;
+	int scoreValue;
+};
+
+const unsigned int WATER_PICKUP_SCORE = 100;
+class Water : public Goodie {
 public:
 	Water(StudentWorld& world, int level, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
-		: Prop(world, true, false, ITEM_PICKUP_DISTANCE, IID_WATER_POOL, startX, startY, dir, size, depth) {
+		: Goodie(world, WATER_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_WATER_POOL, startX, startY, dir, size, depth) {
 		lifespan = std::max(100, 300 - (10 * level));
 	}
 
 	void doSomething();
 
 private:
-	void affectPlayerInRadius();
-	void affectObjectInRadius(std::unique_ptr<Actor>& object) {}
+	void updatePlayerInventory();
+	virtual void affectObjectInRadius(std::unique_ptr<Actor>& object) {}
 
 	int lifespan = 0;
+};
+
+
+const double ITEM_REVEAL_DISTANCE = 4.0;
+
+// literally just calls setVisible() again at the start of the constructor
+class HiddenGoodie : public Goodie {
+public:
+	HiddenGoodie(StudentWorld& world, int pointValue, const unsigned int soundID, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: Goodie(world, pointValue, soundID, imageID, startX, startY, dir, size, depth) {
+		setVisible(false);
+	}
+
+protected:
+	bool checkRadius();
+
+	virtual void updatePlayerInventory()=0;
+	virtual void affectObjectInRadius(std::unique_ptr<Actor>& object) {}
+};
+
+const unsigned int NUGG_PICKUP_SCORE = 10;
+const int NUGG_LIFESPAN = 100;
+class Nugg : public HiddenGoodie {
+public:
+	Nugg(StudentWorld& world, bool usingAsBribe, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: HiddenGoodie(world, NUGG_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_GOLD, startX, startY, dir, size, depth) {
+		affectPlayer = !usingAsBribe;
+		affectActors = usingAsBribe;
+		setVisible(usingAsBribe);
+	}
+
+	void doSomething();
+
+private:
+	void updatePlayerInventory();
+
+	int lifespan = NUGG_LIFESPAN;
 };
 
 enum class BoulderState {
