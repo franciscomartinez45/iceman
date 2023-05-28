@@ -20,9 +20,10 @@ int StudentWorld::init() {
 		spawnObjectInIce(ObjectType::Boulder);
 	for (auto i : std::ranges::iota_view(0, num_nuggs))
 		spawnObjectInIce(ObjectType::Nugg);
-	for (auto i : std::ranges::iota_view(0, num_barrels))
+	for (auto i : std::ranges::iota_view(0, num_barrels)) 
 		spawnObjectInIce(ObjectType::Barrel);
-
+		player->addOil(num_barrels);
+	
 	// useful test case - you may want to repurpose this for the barrels
 	//props.push_back(std::make_unique<Nugg>(getWorld(), false, 60, 60));
 
@@ -148,7 +149,7 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 		break;
 
 	case ObjectType::Barrel:
-		// TODO
+		props.push_back(std::make_unique<Barrel>(getWorld(), true, spawn_coords.first, spawn_coords.second));
 		break;
 	}
 }
@@ -206,7 +207,7 @@ void StudentWorld::setStatusBar() {
 	// oil left
 	status << "Oil Left:";
 	status << std::setfill(' ') << std::setw(2);
-	status << "?" << separator;
+	status << player->getOil() << separator;
 
 	// sonar
 	status << "Sonar:";
