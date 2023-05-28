@@ -54,6 +54,8 @@ public:
 		return props;
 	}
 
+	void spawnPlayerNugg();
+
 private:
 	bool isIntersectingObject(unsigned int x, unsigned int y);
 	bool isIntersectingObject(std::pair<unsigned int, unsigned int> p);
