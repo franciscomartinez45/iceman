@@ -23,6 +23,9 @@ int StudentWorld::init() {
 	for (auto i : std::ranges::iota_view(0, num_barrels))
 		spawnObjectInIce(ObjectType::Barrel);
 
+	// useful test case - you may want to repurpose this for the barrels
+	//props.push_back(std::make_unique<Nugg>(getWorld(), false, 60, 60));
+
 	return GWSTATUS_CONTINUE_GAME;
 }
 
@@ -71,10 +74,15 @@ int StudentWorld::move() {
 
 	return GWSTATUS_CONTINUE_GAME;
 }
+
 //void StudentWorld::cleanUp(){}
 GameWorld* createStudentWorld(string assetDir)
 {
 	return new StudentWorld(assetDir);
+}
+
+void StudentWorld::spawnPlayerNugg() {
+	props.push_back(std::make_unique<Nugg>(getWorld(), true, player->getX(), player->getY()));
 }
 
 // checks to see if a point is intersecting any major game objects
@@ -136,8 +144,9 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 		break;
 
 	case ObjectType::Nugg:
-		// TODO
+		props.push_back(std::make_unique<Nugg>(getWorld(), false, spawn_coords.first, spawn_coords.second));
 		break;
+
 	case ObjectType::Barrel:
 		// TODO
 		break;
@@ -164,8 +173,7 @@ bool StudentWorld::vetIceSpawnCoords(std::pair<unsigned int, unsigned int> p,
 	return true;
 }
 
-// VERY rudimentary for now
-// expect more features later
+// TODO: ADD BARREL COUNT
 void StudentWorld::setStatusBar() {
 	std::stringstream status;
 	const std::string separator = "  ";
