@@ -9,7 +9,7 @@ using namespace std;
 
 int StudentWorld::init() {
 	StudentWorld::player = std::make_unique<IceMan>(getWorld(), 30, 60);
-	ice = std::make_unique<Ice>(getWorld());
+	ice = std::make_unique<Ice>();
 
 	// spawn ice goodies
 	int num_boulders = std::min(getLevel() / 2 + 2, unsigned int(9));
@@ -34,8 +34,8 @@ int StudentWorld::move() {
 	StudentWorld::player->doSomething();
 	for (auto& actor : actors)
 		actor->doSomething();
-	for (auto& goodie : goodies)
-		goodie->doSomething();
+	for (auto& prop : props)
+		prop->doSomething();
 
 	int goodie_chance = getLevel() * 25 + 300; // magic numbers - boss's orders
 	//goodie_chance = 10; // testing
@@ -61,10 +61,10 @@ int StudentWorld::move() {
 				break;
 		}
 	}
-	for (auto it = goodies.begin(); it != goodies.end(); it++) {
+	for (auto it = props.begin(); it != props.end(); it++) {
 		if ((*it)->isDead()) {
-			it = goodies.erase(it);
-			if (it == goodies.end())
+			it = props.erase(it);
+			if (it == props.end())
 				break;
 		}
 	}
@@ -83,8 +83,8 @@ bool StudentWorld::isIntersectingObject(unsigned int x, unsigned int y) {
 	if (player->intersects(x, y))
 		return true;
 	else {
-		for (auto& goodie : goodies) {
-			if (goodie->intersects(x, y))
+		for (auto& prop : props) {
+			if (prop->intersects(x, y))
 				return true;
 		}
 	}
@@ -110,7 +110,7 @@ void StudentWorld::spawnWater() {
 				return;
 			}
 		}
-		goodies.push_back(std::make_unique<Water>(getWorld(), getLevel(), water_coords.first, water_coords.second));
+		props.push_back(std::make_unique<Water>(getWorld(), getLevel(), water_coords.first, water_coords.second));
 	}
 }
 
@@ -131,7 +131,7 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 
 	switch (type) {
 	case ObjectType::Boulder:
-		goodies.push_back(std::make_unique<Boulder>(getWorld(), spawn_coords.first, spawn_coords.second));
+		props.push_back(std::make_unique<Boulder>(getWorld(), spawn_coords.first, spawn_coords.second));
 		ice->destroyIce(spawn_coords.first, spawn_coords.second, ACTOR_HEIGHT, ACTOR_HEIGHT);
 		break;
 
@@ -156,8 +156,8 @@ bool StudentWorld::vetIceSpawnCoords(std::pair<unsigned int, unsigned int> p,
 		return false;
 
 	// radius checking
-	for (auto& goodie : goodies) {
-		if (goodie->getDistanceTo(p) <= MIN_SPAWN_RADIUS) {
+	for (auto& prop : props) {
+		if (prop->getDistanceTo(p) <= MIN_SPAWN_RADIUS) {
 			return false;
 		}
 	}
