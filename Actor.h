@@ -64,6 +64,7 @@ public:
 	int getWater() { return water; }
 	int getSonar() { return sonar; }
 	int getNuggs() { return nuggs; }
+	int getOil() {return numBarrels;}
 
 	void addWater(unsigned int add) { 
 		water += add; 
@@ -76,6 +77,12 @@ public:
 		if (nuggs > CAP_TWO_DIGITS)
 			nuggs = CAP_TWO_DIGITS;
 	}
+	void foundOil() {
+		numBarrels--;
+	}
+	void addOil(int number) {
+		numBarrels += number;
+	}
 
 private:
 	bool willCollide(std::pair<int, int> new_pos);
@@ -85,6 +92,7 @@ private:
 	int water = ICEMAN_DEFAULT_WATER;
 	int sonar = ICEMAN_DEFAULT_SONAR;
 	int nuggs = 0;
+	int numBarrels = 0;
 };
 
 const int ICE_DEPTH = 3;
@@ -161,15 +169,31 @@ protected:
 	virtual void updatePlayerInventory()=0;
 	virtual void affectObjectInRadius(std::unique_ptr<Actor>& object) {}
 };
+const unsigned int BARREL_PICKUP_SCORE = 1'000;
+class Barrel : public HiddenGoodie {
+public:
+	Barrel(StudentWorld& world, bool usingAsBribe, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: HiddenGoodie(world, BARREL_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_BARREL, startX, startY, dir, size, depth) {
+		affectPlayer = usingAsBribe;
+		affectActors = !usingAsBribe;
+		setVisible(usingAsBribe);
+	}
 
+	void doSomething();
+
+private:
+	void updatePlayerInventory();
+
+
+};
 const unsigned int NUGG_PICKUP_SCORE = 10;
 const int NUGG_LIFESPAN = 100;
 class Nugg : public HiddenGoodie {
 public:
 	Nugg(StudentWorld& world, bool usingAsBribe, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
 		: HiddenGoodie(world, NUGG_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_GOLD, startX, startY, dir, size, depth) {
-		affectPlayer = !usingAsBribe;
-		affectActors = usingAsBribe;
+		affectPlayer = usingAsBribe;
+		affectActors = !usingAsBribe;
 		setVisible(usingAsBribe);
 	}
 
@@ -180,6 +204,8 @@ private:
 
 	int lifespan = NUGG_LIFESPAN;
 };
+
+
 
 enum class BoulderState {
 	Stable,
