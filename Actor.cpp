@@ -100,34 +100,53 @@ bool IceMan::willCollide(std::pair<int, int> new_pos) {
 	if (new_pos.first < 0 or new_pos.first > ACTOR_WIDTH_LIMIT or new_pos.second < 0 or new_pos.second > ACTOR_WIDTH_LIMIT)
 		return true;
 	
-	for (auto& goodie : w.getGoodies()) {
-		if (goodie->isBoulder() and goodie->intersects(new_pos.first, new_pos.second))
+	for (auto& prop : w.getProps()) {
+		if (prop->isBoulder() and prop->intersects(new_pos.first, new_pos.second))
 			return true;
 	}
 
 	return false;
 }
 
-const double ITEM_PICKUP_DISTANCE = 3.0;
 const unsigned int WATER_PICKUP_AMOUNT = 5;
 const unsigned int WATER_PICKUP_SCORE = 100;
 
+bool Prop::checkRadius() {
+	bool found = false;
+	if (affectPlayer) {
+		if (getDistanceTo(*(w.getPlayer().get())) <= radius) {
+			affectPlayerInRadius();
+			found = true;
+		}
+	}
+	if (affectActors) {
+		for (auto& actor : w.getActors()) {
+			if (getDistanceTo(*(actor.get())) <= ITEM_PICKUP_DISTANCE) {
+				affectObjectInRadius(actor);
+				found = true;
+			}
+		}
+	}
+	return found;
+} // glorious bracket staircase
+
 void Water::doSomething() {
 	if (!dead) {
-		if (getDistanceTo(*(w.getPlayer().get())) <= ITEM_PICKUP_DISTANCE) {
-			dead = true;
-
-			w.playSound(SOUND_GOT_GOODIE);
-			w.getPlayer()->addWater(WATER_PICKUP_AMOUNT);
-			w.increaseScore(WATER_PICKUP_SCORE);
-		}
-		else {
+		if (!checkRadius()) {
 			if (lifespan == 0)
 				dead = true;
 			else
 				lifespan--;
 		}
 	}
+}
+
+void Water::affectPlayerInRadius() {
+	dead = true;
+
+	w.playSound(SOUND_GOT_GOODIE);
+	w.getPlayer()->addWater(WATER_PICKUP_AMOUNT);
+	w.increaseScore(WATER_PICKUP_SCORE);
 }
 
 void Boulder::doSomething() {
@@ -152,15 +171,20 @@ void Boulder::doSomething() {
 				dead = true;
 			else {
 				moveTo(getX(), getY() - 1);
-				if (getDistanceTo(*(w.getPlayer().get())) <= ITEM_PICKUP_DISTANCE) {
-					w.getPlayer()->beAnnoyed(INSTAKILL_DAMAGE);
-				}
-				// TODO: ADD PROTESTER DAMAGE
+				checkRadius();
 			}
 				
 			break;
 		}
 	}
+}
+
+void Boulder::affectPlayerInRadius() {
+	w.getPlayer()->beAnnoyed(INSTAKILL_DAMAGE);
+}
+
+void Boulder::affectObjectInRadius(std::unique_ptr<Actor>& object) {
+	// TODO
 }
 
 bool Boulder::hasIceUnder() {
@@ -179,24 +203,24 @@ bool Boulder::hasBoulderUnder() {
 	if ((getY() - ACTOR_HEIGHT) < 0)
 		return false;
 
-	for (auto& goodie : w.getGoodies()) {
-		if (goodie->isBoulder()) {
-			if ((goodie->getY() == getY() + ACTOR_HEIGHT - 1)
-				and (goodie->getX() > getX() - ACTOR_HEIGHT)
-				and (goodie->getX() < getX() + ACTOR_HEIGHT))
+	for (auto& prop : w.getProps()) {
+		if (prop->isBoulder()) {
+			if ((prop->getY() == getY() + ACTOR_HEIGHT - 1)
+				and (prop->getX() > getX() - ACTOR_HEIGHT)
+				and (prop->getX() < getX() + ACTOR_HEIGHT))
 				return true;
 		}
 	}
 	return false;
 }
 
-Ice::Ice(StudentWorld& world) {
+Ice::Ice() {
 	// from <ranges>
 	// think python ranges, but C++ified (i.e. painfully verbose)
 	for (auto i : std::ranges::iota_view(0, VIEW_WIDTH)) {
 		for (auto j : std::ranges::iota_view(0, VIEW_HEIGHT - ACTOR_HEIGHT)) {
 			if ((i < TUNNEL_START_X) || (i > TUNNEL_END_X) || (j < TUNNEL_END_Y)) {
-				iceObjects[i][j] = std::make_unique<IceBlock>(world, i, j);
+				iceObjects[i][j] = std::make_unique<IceBlock>(i, j);
 			}
 		}
 	}
