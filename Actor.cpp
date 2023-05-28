@@ -188,7 +188,17 @@ void Nugg::doSomething() {
 		}
 	}
 }
-
+void Barrel::doSomething() {
+	if (!dead) {
+		checkRadius();
+		if (affectActors) {
+			dead = true;
+		}
+	}
+}
+void Barrel::updatePlayerInventory() {
+	w.getPlayer()->foundOil();
+}
 void Boulder::doSomething() {
 	if (!isDead()) {
 		switch (state) {
