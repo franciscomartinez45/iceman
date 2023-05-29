@@ -36,48 +36,50 @@ int StudentWorld::init() {
 const int CHANCE_OF_SONAR = 5;
 int StudentWorld::move() {
 	setStatusBar();
+	if (player->getOil() > 0) {
+		StudentWorld::player->doSomething();
+		for (auto& actor : actors)
+			actor->doSomething();
+		for (auto& prop : props)
+			prop->doSomething();
 
-	StudentWorld::player->doSomething();
-	for (auto& actor : actors)
-		actor->doSomething();
-	for (auto& prop : props)
-		prop->doSomething();
-
-	int goodie_chance = getLevel() * 25 + 300; // magic numbers - boss's orders
-	//goodie_chance = 10; // testing
-	if (rand() % goodie_chance == 0) {
-		if (rand() % CHANCE_OF_SONAR == 0) {
-			spawnObjectInIce(ObjectType::Sonar);
+		int goodie_chance = getLevel() * 25 + 300; // magic numbers - boss's orders
+		//goodie_chance = 10; // testing
+		if (rand() % goodie_chance == 0) {
+			if (rand() % CHANCE_OF_SONAR == 0) {
+				spawnObjectInIce(ObjectType::Sonar);
+			}
+			else {
+				spawnWater();
+			}
 		}
-		else {
-			spawnWater();
-		}
-	}
 
-	// handle dead objects
-	if (player->isDead()) {
-		decLives();
-		return GWSTATUS_PLAYER_DIED;
-	}
-
-	for (auto it = actors.begin(); it != actors.end(); it++) {
-		if ((*it)->isDead()) {
-			it = actors.erase(it);
-			if (it == actors.end())
-				break;
+		// handle dead objects
+		if (player->isDead()) {
+			decLives();
+			return GWSTATUS_PLAYER_DIED;
 		}
-	}
-	for (auto it = props.begin(); it != props.end(); it++) {
-		if ((*it)->isDead()) {
-			it = props.erase(it);
-			if (it == props.end())
-				break;
-		}
-	}
 
-	return GWSTATUS_CONTINUE_GAME;
+		for (auto it = actors.begin(); it != actors.end(); it++) {
+			if ((*it)->isDead()) {
+				it = actors.erase(it);
+				if (it == actors.end())
+					break;
+			}
+		}
+		for (auto it = props.begin(); it != props.end(); it++) {
+			if ((*it)->isDead()) {
+				it = props.erase(it);
+				if (it == props.end())
+					break;
+			}
+		}
+
+		return GWSTATUS_CONTINUE_GAME;
+	}
+	return GWSTATUS_FINISHED_LEVEL;
+	
 }
-
 //void StudentWorld::cleanUp(){}
 GameWorld* createStudentWorld(string assetDir)
 {
@@ -155,8 +157,7 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 		break;
 	
 	case ObjectType::Sonar:
-		props.push_back(std::make_unique<Sonar>(getWorld(),getWorld().getLevel(),true, spawn_coords.first, spawn_coords.second));
-
+		props.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), true, spawn_coords.first, spawn_coords.second));
 		break;
 }
 }
