@@ -11,7 +11,8 @@
 enum class ObjectType {
 	Boulder,
 	Nugg,
-	Barrel
+	Barrel,
+	Sonar
 };
 
 class StudentWorld : public GameWorld

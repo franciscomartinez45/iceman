@@ -21,6 +21,7 @@ bool Object::intersects(unsigned int x, unsigned int y, unsigned int x_size, uns
 		or contains(x, y + y_size - 1) or contains(x + x_size - 1, y));
 }
 
+
 void IceMan::doSomething() {
 	if (!isDead()) {
 		// remove intersecting ice
@@ -158,6 +159,22 @@ void Water::doSomething() {
 		}
 	}
 }
+void Sonar::doSomething() {
+	if (!dead) {
+		checkRadius();
+		if (affectActors) {
+			if (lifespan <= 0)
+				dead = true;
+			else
+				lifespan--;
+		}
+	}
+}
+void Sonar::updatePlayerInventory() {
+	w.getPlayer()->addSonar();
+}
+
+
 
 void Water::updatePlayerInventory() {
 	w.getPlayer()->addWater(WATER_PICKUP_AMOUNT);

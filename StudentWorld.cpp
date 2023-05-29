@@ -15,7 +15,9 @@ int StudentWorld::init() {
 	int num_boulders = std::min(getLevel() / 2 + 2, unsigned int(9));
 	int num_nuggs = std::max(5 - getLevel(), unsigned int(2));
 	int num_barrels = std::min(getLevel() + 2, unsigned int(21));
-
+	
+		spawnObjectInIce(ObjectType::Sonar);
+		
 	for (auto i : std::ranges::iota_view(0, num_boulders))
 		spawnObjectInIce(ObjectType::Boulder);
 	for (auto i : std::ranges::iota_view(0, num_nuggs))
@@ -45,7 +47,7 @@ int StudentWorld::move() {
 	//goodie_chance = 10; // testing
 	if (rand() % goodie_chance == 0) {
 		if (rand() % CHANCE_OF_SONAR == 0) {
-			// spawn sonar here
+			spawnObjectInIce(ObjectType::Sonar);
 		}
 		else {
 			spawnWater();
@@ -151,7 +153,12 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 	case ObjectType::Barrel:
 		props.push_back(std::make_unique<Barrel>(getWorld(), true, spawn_coords.first, spawn_coords.second));
 		break;
-	}
+	
+	case ObjectType::Sonar:
+		props.push_back(std::make_unique<Sonar>(getWorld(),getWorld().getLevel(),true, spawn_coords.first, spawn_coords.second));
+
+		break;
+}
 }
 
 const double MIN_SPAWN_RADIUS = 6.0;
