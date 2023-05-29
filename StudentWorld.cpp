@@ -16,7 +16,7 @@ int StudentWorld::init() {
 	int num_nuggs = std::max(5 - getLevel(), unsigned int(2));
 	int num_barrels = std::min(getLevel() + 2, unsigned int(21));
 	
-		spawnObjectInIce(ObjectType::Sonar);
+	
 		
 	for (auto i : std::ranges::iota_view(0, num_boulders))
 		spawnObjectInIce(ObjectType::Boulder);
@@ -44,7 +44,7 @@ int StudentWorld::move() {
 			prop->doSomething();
 
 		int goodie_chance = getLevel() * 25 + 300; // magic numbers - boss's orders
-		//goodie_chance = 10; // testing
+		
 		if (rand() % goodie_chance == 0) {
 			if (rand() % CHANCE_OF_SONAR == 0) {
 				spawnObjectInIce(ObjectType::Sonar);
