@@ -31,8 +31,7 @@ public:
 
 	virtual void cleanUp(){
 		player.reset();
-		actors.clear();
-		props.clear();
+		objects.clear();
 		ice.reset();
 	}
 	
@@ -48,12 +47,8 @@ public:
 		return player;
 	}
 
-	std::list<std::unique_ptr<Actor>>& getActors() {
-		return actors;
-	}
-
-	std::list<std::unique_ptr<Prop>>& getProps() {
-		return props;
+	std::list<std::unique_ptr<Object>>& getObjects() {
+		return objects;
 	}
 	void spawnSquirt();
 	void spawnPlayerNugg();
@@ -72,8 +67,7 @@ private:
 	void setStatusBar();
 
 	std::unique_ptr<IceMan> player = nullptr;
-	std::list<std::unique_ptr<Actor>> actors;
-	std::list<std::unique_ptr<Prop>> props;
+	std::list<std::unique_ptr<Object>> objects;
 	std::unique_ptr<Ice> ice = nullptr;
 };
 
