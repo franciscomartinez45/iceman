@@ -319,6 +319,9 @@ public:
 	std::optional<std::pair<unsigned int, unsigned int>> getOpenSquare(unsigned int i);
 	std::optional<std::pair<unsigned int, unsigned int>> getIceSquare(unsigned int i);
 
+	size_t getNumOpenSquares() { return openSquares.size(); }
+	size_t getNumIceSquares() { return iceSquares.size(); }
+
 private:	
 	// a less disgusting way to write this would be appreciated
 	// using namespace std would just be a stopgap
