@@ -16,8 +16,8 @@ class StudentWorld; // Gordian knotting the circular dependency
 
 class Object : public GraphObject {
 public:
-	Object(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-	: GraphObject(imageID, startX, startY, dir, size, depth), w(world) {
+	Object(StudentWorld& world, bool actor, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+	: GraphObject(imageID, startX, startY, dir, size, depth), w(world), actorStatus(actor) {
 		setVisible(true);
 	}
 
@@ -27,11 +27,19 @@ public:
 	bool intersects(unsigned int x, unsigned int y, unsigned int x_size = ACTOR_HEIGHT, unsigned int y_size = ACTOR_HEIGHT);
 
 	bool isDead() { return dead; }
+	bool isActor() { return actorStatus; }
+	virtual bool isBoulder() { return false; }
 
 	virtual void doSomething() = 0;
+	virtual void beAnnoyed(int annoy_value) = 0;
 
 protected:
+	double getDistanceToPlayer();
+	std::optional<double> getDistanceToActor(std::unique_ptr<Object>& object);
+
 	bool dead = false;
+
+	const bool actorStatus;
 
 	StudentWorld& w; // passed in during init()
 };
@@ -41,7 +49,7 @@ const int INSTAKILL_DAMAGE = 100;
 class Actor : public Object {
 public:
 	Actor(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Object(world, imageID, startX, startY, dir, size, depth){}
+		: Object(world, true, imageID, startX, startY, dir, size, depth){}
 
 	virtual void beAnnoyed(int annoy_value) =0;
 };
@@ -113,17 +121,16 @@ const double ITEM_PICKUP_DISTANCE = 3.0;
 class Prop : public Object {
 public:
 	Prop(StudentWorld& world, bool affectsPlayer, bool affectsActors, double affectRadius, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
-		: Object(world, imageID, startX, startY, dir, size, depth), affectPlayer(affectsPlayer), affectActors(affectsActors), radius(affectRadius) {}
+		: Object(world, false, imageID, startX, startY, dir, size, depth), affectPlayer(affectsPlayer), affectActors(affectsActors), radius(affectRadius) {}
 
-	virtual bool isBoulder() { return false; }
+	virtual void beAnnoyed(int annoy_value) { }
 
 protected:
-	double getDistanceToPlayer();
-	double getDistanceToActor(std::unique_ptr<Actor>& object);
 
 	virtual bool checkRadius();
-	virtual void affectPlayerInRadius() =0;
-	virtual void affectObjectInRadius(std::unique_ptr<Actor>& object) =0;
+	virtual void affectPlayerInRadius() { } ;
+	virtual void affectObjectInRadius(std::unique_ptr<Object>& object) { };
+	virtual bool isBoulder() { return false; }
 
 	bool affectPlayer;
 	bool affectActors;
@@ -181,7 +188,7 @@ protected:
 const unsigned int BARREL_PICKUP_SCORE = 1'000;
 class Barrel : public HiddenGoodie {
 public:
-	Barrel(StudentWorld& world,bool usingAsBribe, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+	Barrel(StudentWorld& world, bool usingAsBribe, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
 		: HiddenGoodie(world, BARREL_PICKUP_SCORE, SOUND_FOUND_OIL, IID_BARREL, startX, startY, dir, size, depth) {
 		affectPlayer = usingAsBribe;
 		affectActors = !usingAsBribe;
@@ -200,7 +207,7 @@ const unsigned int SONAR_PICKUP_SCORE = 75;
 class Sonar : public HiddenGoodie {
 public:
 	Sonar(StudentWorld& world,int level, bool usingAsBribe, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
-		: HiddenGoodie(world, SONAR_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_SONAR, startX, startY , dir, size, depth) {
+		: HiddenGoodie(world, SONAR_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_SONAR, startX, startY, dir, size, depth) {
 		affectPlayer = usingAsBribe;
 		affectActors = !usingAsBribe;
 		setVisible(!usingAsBribe);
@@ -251,7 +258,7 @@ public:
 	bool checkRadius();
 	void affectPlayerInRadius();
 	void affectObjectInRadius(std::unique_ptr<Actor>& object);
-
+	void move();
 private:
 	int lifespan = 0;
 	std::pair<int, int> currentPosition;
