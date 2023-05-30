@@ -46,8 +46,8 @@ void IceMan::doSomething() {
 				break;
 			case KEY_PRESS_SPACE:
 				//subtract water count
-				if (w.getPlayer()->getWater() > 0) {
-					w.getPlayer()->useWater();
+				if (getWater() > 0) {
+					useWater();
 					//water sound
 					w.playSound(SOUND_PLAYER_SQUIRT);
 					w.spawnSquirt();
@@ -63,13 +63,14 @@ void IceMan::doSomething() {
 			case KEY_PRESS_ESCAPE:
 				beAnnoyed(INSTAKILL_DAMAGE);
 				break;
-			case KEY_PRESS_SONAR:
-				if (w.getPlayer()->getSonar() > 0) {
+			case 'z':
+			case 'Z':
+				if (getSonar() > 0) {
 					//reveal items in radius
 					w.revealObjects();
 					w.playSound(SOUND_SONAR);
 					//subtract sonar count
-					w.getPlayer()->useSonar();
+					useSonar();
 				}
 				break;
 			}

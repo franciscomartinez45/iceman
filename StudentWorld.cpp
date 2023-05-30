@@ -157,7 +157,7 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 		break;
 	
 	case ObjectType::Sonar:
-		props.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), true, spawn_coords.first, spawn_coords.second));
+		props.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), true,0,60));
 		break;
 	
 }

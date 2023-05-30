@@ -200,7 +200,7 @@ const unsigned int SONAR_PICKUP_SCORE = 75;
 class Sonar : public HiddenGoodie {
 public:
 	Sonar(StudentWorld& world,int level, bool usingAsBribe, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
-		: HiddenGoodie(world, SONAR_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_SONAR, startX, startY, dir, size, depth) {
+		: HiddenGoodie(world, SONAR_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_SONAR, startX, startY , dir, size, depth) {
 		affectPlayer = usingAsBribe;
 		affectActors = !usingAsBribe;
 		setVisible(!usingAsBribe);
@@ -251,7 +251,7 @@ public:
 	bool checkRadius();
 	void affectPlayerInRadius();
 	void affectObjectInRadius(std::unique_ptr<Actor>& object);
-	void move();
+
 private:
 	int lifespan = 0;
 	std::pair<int, int> currentPosition;
