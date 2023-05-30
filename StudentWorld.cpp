@@ -38,10 +38,8 @@ int StudentWorld::move() {
 	setStatusBar();
 	if (player->getOil() > 0) {
 		StudentWorld::player->doSomething();
-		for (auto& actor : actors)
-			actor->doSomething();
-		for (auto& prop : props)
-			prop->doSomething();
+		for (auto& object : objects)
+			object->doSomething();
 
 		int goodie_chance = getLevel() * 25 + 300; // magic numbers - boss's orders
 		
@@ -60,17 +58,10 @@ int StudentWorld::move() {
 			return GWSTATUS_PLAYER_DIED;
 		}
 
-		for (auto it = actors.begin(); it != actors.end(); it++) {
+		for (auto it = objects.begin(); it != objects.end(); it++) {
 			if ((*it)->isDead()) {
-				it = actors.erase(it);
-				if (it == actors.end())
-					break;
-			}
-		}
-		for (auto it = props.begin(); it != props.end(); it++) {
-			if ((*it)->isDead()) {
-				it = props.erase(it);
-				if (it == props.end())
+				it = objects.erase(it);
+				if (it == objects.end())
 					break;
 			}
 		}
@@ -87,7 +78,7 @@ GameWorld* createStudentWorld(string assetDir)
 }
 
 void StudentWorld::spawnPlayerNugg() {
-	props.push_back(std::make_unique<Nugg>(getWorld(), true, player->getX(), player->getY()));
+	objects.push_back(std::make_unique<Nugg>(getWorld(), true, player->getX(), player->getY()));
 }
 
 // checks to see if a point is intersecting any major game objects
@@ -96,9 +87,11 @@ bool StudentWorld::isIntersectingObject(unsigned int x, unsigned int y) {
 	if (player->intersects(x, y))
 		return true;
 	else {
-		for (auto& prop : props) {
-			if (prop->intersects(x, y))
-				return true;
+		for (auto& object : objects) {
+			if (!object->isActor()) {
+				if (object->intersects(x, y))
+					return true;
+			}
 		}
 	}
 	return false;
@@ -123,7 +116,7 @@ void StudentWorld::spawnWater() {
 				return;
 			}
 		}
-		props.push_back(std::make_unique<Water>(getWorld(), getLevel(), water_coords.first, water_coords.second));
+		objects.push_back(std::make_unique<Water>(getWorld(), getLevel(), water_coords.first, water_coords.second));
 	}
 }
 
@@ -144,20 +137,20 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 
 	switch (type) {
 	case ObjectType::Boulder:
-		props.push_back(std::make_unique<Boulder>(getWorld(), spawn_coords.first, spawn_coords.second));
+		objects.push_back(std::make_unique<Boulder>(getWorld(), spawn_coords.first, spawn_coords.second));
 		ice->destroyIce(spawn_coords.first, spawn_coords.second, ACTOR_HEIGHT, ACTOR_HEIGHT);
 		break;
 
 	case ObjectType::Nugg:
-		props.push_back(std::make_unique<Nugg>(getWorld(), false, spawn_coords.first, spawn_coords.second));
+		objects.push_back(std::make_unique<Nugg>(getWorld(), false, spawn_coords.first, spawn_coords.second));
 		break;
 
 	case ObjectType::Barrel:
-		props.push_back(std::make_unique<Barrel>(getWorld(), true, spawn_coords.first, spawn_coords.second));
+		objects.push_back(std::make_unique<Barrel>(getWorld(), true, spawn_coords.first, spawn_coords.second));
 		break;
 	
 	case ObjectType::Sonar:
-		props.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), true,0,60));
+		objects.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), true, spawn_coords.first, spawn_coords.second));
 		break;
 	
 }
@@ -175,8 +168,8 @@ bool StudentWorld::vetIceSpawnCoords(std::pair<unsigned int, unsigned int> p,
 		return false;
 
 	// radius checking
-	for (auto& prop : props) {
-		if (prop->getDistanceTo(p) <= MIN_SPAWN_RADIUS) {
+	for (auto& object : objects) {
+		if (object->getDistanceTo(p) <= MIN_SPAWN_RADIUS) {
 			return false;
 		}
 	}
@@ -232,13 +225,15 @@ void StudentWorld::setStatusBar() {
 }
 
 void StudentWorld::revealObjects() {
-	
-for (auto& prop : props) {
-	if (!prop->isVisible() and prop->getDistanceTo(*(player.get())) <= 6.0) {
-		prop->setVisible(true);
+	for (auto& object : objects) {
+		if (!object->isActor()) {
+			if (!object->isVisible() and object->getDistanceTo(*(player.get())) <= 6.0) {
+				object->setVisible(true);
+			}
+		}
 	}
 }
-}
+
 void StudentWorld::spawnSquirt() {
-	props.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
+	objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
 }
