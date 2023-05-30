@@ -80,10 +80,17 @@ int StudentWorld::move() {
 
 		return GWSTATUS_CONTINUE_GAME;
 	}
+	
 	return GWSTATUS_FINISHED_LEVEL;
 	
 }
-//void StudentWorld::cleanUp(){}
+
+void StudentWorld::cleanUp() {
+	player.reset();
+	objects.clear();
+	ice.reset();
+}
+
 GameWorld* createStudentWorld(string assetDir)
 {
 	return new StudentWorld(assetDir);
@@ -248,7 +255,7 @@ void StudentWorld::revealObjects() {
 			}
 		}
 	}
-}
+} // glorious bracket staircase
 
 void StudentWorld::spawnSquirt() {
 	objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
