@@ -45,7 +45,14 @@ void IceMan::doSomething() {
 				new_dir = right;
 				break;
 			case KEY_PRESS_SPACE:
-				
+				//subtract water count
+				if (w.getPlayer()->getWater() > 0) {
+					w.getPlayer()->useWater();
+					//water sound
+					w.playSound(SOUND_PLAYER_SQUIRT);
+					w.spawnSquirt();
+				}
+				//squirt water
 				break;
 			case KEY_PRESS_TAB:
 				if (nuggs > 0) {
@@ -61,7 +68,7 @@ void IceMan::doSomething() {
 					//reveal items in radius
 					w.revealObjects();
 					w.playSound(SOUND_SONAR);
-					//
+					//subtract sonar count
 					w.getPlayer()->useSonar();
 				}
 				break;
@@ -254,7 +261,28 @@ void Boulder::doSomething() {
 		}
 	}
 }
-
+void Squirt::doSomething() {
+	if (lifespan > 0 and !isDead()) {
+			switch (w.getPlayer()->getDirection()) {
+			case GraphObject::right:
+				currentPosition.first++;
+				break;
+			case GraphObject::left:
+				currentPosition.first--;
+				break;
+			case GraphObject::up:
+				currentPosition.second++;
+				break;
+			case GraphObject::down:
+				currentPosition.second--;
+				break;
+			}
+			moveTo(currentPosition.first, currentPosition.second);
+			lifespan--;
+		}
+	
+	else { dead = true; }
+}
 void Boulder::affectPlayerInRadius() {
 	w.getPlayer()->beAnnoyed(INSTAKILL_DAMAGE);
 }
@@ -404,3 +432,9 @@ void Ice::populateAvailableSquares() {
 		std::cout << i.first << ' ' << i.second << '\n';
 	}*/
 }
+double Squirt::getDistanceToPlayer() { return 0.0; }
+double Squirt::getDistanceToActor(std::unique_ptr<Actor>& object) {return 0.0; }
+
+bool Squirt::checkRadius() { return true; }
+void Squirt::affectPlayerInRadius(){}
+void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object){}

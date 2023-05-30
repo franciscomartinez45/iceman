@@ -159,6 +159,7 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 	case ObjectType::Sonar:
 		props.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), true, spawn_coords.first, spawn_coords.second));
 		break;
+	
 }
 }
 
@@ -232,10 +233,12 @@ void StudentWorld::setStatusBar() {
 
 void StudentWorld::revealObjects() {
 	
-auto pair = make_pair<int,int>(player->getX(),player->getY());
 for (auto& prop : props) {
-	if (prop->isVisible() and prop->getDistanceTo(*(player.get())) <= 6.0) {
-		prop->setVisible(false);
+	if (!prop->isVisible() and prop->getDistanceTo(*(player.get())) <= 6.0) {
+		prop->setVisible(true);
 	}
 }
+}
+void StudentWorld::spawnSquirt() {
+	props.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
 }

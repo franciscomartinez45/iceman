@@ -13,6 +13,7 @@ enum class ObjectType {
 	Nugg,
 	Barrel,
 	Sonar
+	
 };
 
 class StudentWorld : public GameWorld
@@ -54,7 +55,7 @@ public:
 	std::list<std::unique_ptr<Prop>>& getProps() {
 		return props;
 	}
-
+	void spawnSquirt();
 	void spawnPlayerNugg();
 	void revealObjects();
 private:

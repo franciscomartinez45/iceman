@@ -90,6 +90,9 @@ public:
 	void useSonar() {
 		sonar--;
 	}
+	void useWater() {
+		water--;
+	}
 private:
 	bool willCollide(std::pair<int, int> new_pos);
 
@@ -182,7 +185,7 @@ public:
 		: HiddenGoodie(world, BARREL_PICKUP_SCORE, SOUND_FOUND_OIL, IID_BARREL, startX, startY, dir, size, depth) {
 		affectPlayer = usingAsBribe;
 		affectActors = !usingAsBribe;
-		setVisible(usingAsBribe);
+		setVisible(!usingAsBribe);
 		
 	}
 
@@ -228,7 +231,31 @@ private:
 
 	int lifespan = NUGG_LIFESPAN;
 };
+const int SQUIRT_TRAVEL_DISTANCE = 4;
+class Squirt : public Prop {
+public:
+	Squirt(StudentWorld& world, int startX, int startY, Direction dir, double size = 1.0, unsigned int depth = 1.0)
+		: Prop(world,true,true,ITEM_PICKUP_DISTANCE, IID_WATER_SPURT,startX,startY,dir,size,depth){
+		affectPlayer = false;
+		affectActors = true;
+		setVisible(true);
+		lifespan = SQUIRT_TRAVEL_DISTANCE;
+		currentPosition.first = startX;
+		currentPosition.second = startY;
+		
+	}
+	void doSomething();
+	double getDistanceToPlayer();
+	double getDistanceToActor(std::unique_ptr<Actor>& object);
 
+	bool checkRadius();
+	void affectPlayerInRadius();
+	void affectObjectInRadius(std::unique_ptr<Actor>& object);
+	void move();
+private:
+	int lifespan = 0;
+	std::pair<int, int> currentPosition;
+};
 
 
 enum class BoulderState {
