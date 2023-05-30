@@ -21,6 +21,13 @@ bool Object::intersects(unsigned int x, unsigned int y, unsigned int x_size, uns
 		or contains(x, y + y_size - 1) or contains(x + x_size - 1, y));
 }
 
+double Object::getDistanceToPlayer() {
+	return getDistanceTo(*(w.getPlayer().get()));
+}
+
+std::optional<double> Object::getDistanceToActor(std::unique_ptr<Object>& actor) {
+	return getDistanceTo(*(actor.get()));
+}
 
 void IceMan::doSomething() {
 	if (!isDead()) {
@@ -63,8 +70,8 @@ void IceMan::doSomething() {
 			case KEY_PRESS_ESCAPE:
 				beAnnoyed(INSTAKILL_DAMAGE);
 				break;
-			case 'z':
 			case 'Z':
+			case 'z':
 				if (getSonar() > 0) {
 					//reveal items in radius
 					w.revealObjects();
@@ -121,8 +128,8 @@ bool IceMan::willCollide(std::pair<int, int> new_pos) {
 	if (new_pos.first < 0 or new_pos.first > ACTOR_WIDTH_LIMIT or new_pos.second < 0 or new_pos.second > ACTOR_WIDTH_LIMIT)
 		return true;
 	
-	for (auto& prop : w.getProps()) {
-		if (prop->isBoulder() and prop->intersects(new_pos.first, new_pos.second))
+	for (auto& object : w.getObjects()) {
+		if (object->isBoulder() and object->intersects(new_pos.first, new_pos.second))
 			return true;
 	}
 
@@ -130,14 +137,6 @@ bool IceMan::willCollide(std::pair<int, int> new_pos) {
 }
 
 const unsigned int WATER_PICKUP_AMOUNT = 5;
-
-double Prop::getDistanceToPlayer() {
-	return getDistanceTo(*(w.getPlayer().get()));
-}
-
-double Prop::getDistanceToActor(std::unique_ptr<Actor>& actor) {
-	return getDistanceTo(*(actor.get()));
-}
 
 bool Prop::checkRadius() {
 	bool found = false;
@@ -148,15 +147,17 @@ bool Prop::checkRadius() {
 		}
 	}
 	if (affectActors) {
-		for (auto& actor : w.getActors()) {
-			if (getDistanceToActor(actor) <= ITEM_PICKUP_DISTANCE) {
-				affectObjectInRadius(actor);
-				found = true;
+		for (auto& object : w.getObjects()) {
+			if (object->isActor()) {
+				if (getDistanceToActor(object) <= ITEM_PICKUP_DISTANCE) {
+					affectObjectInRadius(object);
+					found = true;
+				}
 			}
 		}
 	}
 	return found;
-} // glorious bracket staircase
+}
 
 void Goodie::affectPlayerInRadius() {
 	dead = true;
@@ -308,11 +309,11 @@ bool Boulder::hasBoulderUnder() {
 	if ((getY() - ACTOR_HEIGHT) < 0)
 		return false;
 
-	for (auto& prop : w.getProps()) {
-		if (prop->isBoulder()) {
-			if ((prop->getY() == getY() + ACTOR_HEIGHT - 1)
-				and (prop->getX() > getX() - ACTOR_HEIGHT)
-				and (prop->getX() < getX() + ACTOR_HEIGHT))
+	for (auto& object : w.getObjects()) {
+		if (object->isBoulder()) {
+			if ((object->getY() == getY() + ACTOR_HEIGHT - 1)
+				and (object->getX() > getX() - ACTOR_HEIGHT)
+				and (object->getX() < getX() + ACTOR_HEIGHT))
 				return true;
 		}
 	}
