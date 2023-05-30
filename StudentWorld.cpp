@@ -146,11 +146,11 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 		break;
 
 	case ObjectType::Barrel:
-		objects.push_back(std::make_unique<Barrel>(getWorld(), true, spawn_coords.first, spawn_coords.second));
+		objects.push_back(std::make_unique<Barrel>(getWorld(), spawn_coords.first, spawn_coords.second));
 		break;
 	
 	case ObjectType::Sonar:
-		objects.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), true, spawn_coords.first, spawn_coords.second));
+		objects.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), spawn_coords.first, spawn_coords.second));
 		break;
 	
 }
