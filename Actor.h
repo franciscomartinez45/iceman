@@ -218,8 +218,8 @@ class Nugg : public HiddenGoodie {
 public:
 	Nugg(StudentWorld& world, bool usingAsBribe, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
 		: HiddenGoodie(world, NUGG_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_GOLD, startX, startY, dir, size, depth) {
-		affectPlayer = usingAsBribe;
-		affectActors = !usingAsBribe;
+		affectPlayer = !usingAsBribe;
+		affectActors = usingAsBribe;
 		setVisible(usingAsBribe);
 	}
 
