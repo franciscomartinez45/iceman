@@ -30,11 +30,7 @@ public:
 
 	virtual int move();
 
-	virtual void cleanUp(){
-		player.reset();
-		objects.clear();
-		ice.reset();
-	}
+	virtual void cleanUp();
 	
 	StudentWorld& getWorld() {
 		return *this;
