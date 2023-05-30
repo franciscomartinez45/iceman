@@ -357,19 +357,17 @@ bool Ice::destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsign
 }
 
 // returns a valid iceless point to spawn an object in
-// bounds checking is handled through the mod operator
-// since we'll most often be coupling this with rng calls
 std::optional<std::pair<unsigned int, unsigned int>> Ice::getOpenSquare(unsigned int i) {
 	if (openSquares.empty())
 		return std::nullopt;
-	return openSquares.at(i % openSquares.size());
+	return openSquares.at(i);
 }
 
 // getOpenSquare, but for valid ice points
 std::optional<std::pair<unsigned int, unsigned int>> Ice::getIceSquare(unsigned int i) {
 	if (iceSquares.empty())
 		return std::nullopt;
-	return iceSquares.at(i % iceSquares.size());
+	return iceSquares.at(i);
 }
 
 // record which 4x4 squares contain and don't contain ice
