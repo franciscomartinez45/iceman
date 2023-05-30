@@ -188,13 +188,8 @@ protected:
 const unsigned int BARREL_PICKUP_SCORE = 1'000;
 class Barrel : public HiddenGoodie {
 public:
-	Barrel(StudentWorld& world, bool usingAsBribe, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
-		: HiddenGoodie(world, BARREL_PICKUP_SCORE, SOUND_FOUND_OIL, IID_BARREL, startX, startY, dir, size, depth) {
-		affectPlayer = usingAsBribe;
-		affectActors = !usingAsBribe;
-		setVisible(!usingAsBribe);
-		
-	}
+	Barrel(StudentWorld& world, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: HiddenGoodie(world, BARREL_PICKUP_SCORE, SOUND_FOUND_OIL, IID_BARREL, startX, startY, dir, size, depth) { }
 
 	void doSomething();
 
@@ -206,11 +201,8 @@ private:
 const unsigned int SONAR_PICKUP_SCORE = 75;
 class Sonar : public HiddenGoodie {
 public:
-	Sonar(StudentWorld& world,int level, bool usingAsBribe, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+	Sonar(StudentWorld& world,int level, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
 		: HiddenGoodie(world, SONAR_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_SONAR, startX, startY, dir, size, depth) {
-		affectPlayer = usingAsBribe;
-		affectActors = !usingAsBribe;
-		setVisible(!usingAsBribe);
 		lifespan = std::max(100, 300 - (10 * level));
 	}
 
