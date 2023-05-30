@@ -229,3 +229,13 @@ void StudentWorld::setStatusBar() {
 
 	setGameStatText(status.str());
 }
+
+void StudentWorld::revealObjects() {
+	
+auto pair = make_pair<int,int>(player->getX(),player->getY());
+for (auto& prop : props) {
+	if (prop->isVisible() and prop->getDistanceTo(*(player.get())) <= 6.0) {
+		prop->setVisible(false);
+	}
+}
+}

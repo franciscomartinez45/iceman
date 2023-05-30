@@ -56,7 +56,7 @@ public:
 	}
 
 	void spawnPlayerNugg();
-
+	void revealObjects();
 private:
 	bool isIntersectingObject(unsigned int x, unsigned int y);
 	bool isIntersectingObject(std::pair<unsigned int, unsigned int> p);
@@ -67,7 +67,7 @@ private:
 		unsigned int x_range_start, unsigned int x_range_end, unsigned int y_range_start, unsigned int y_range_end);
 
 	int getPlayerHealth() { return double(player->getHealth()) / double(ICEMAN_MAX_HEALTH) * 100; }
-
+	
 	void setStatusBar();
 
 	std::unique_ptr<IceMan> player = nullptr;

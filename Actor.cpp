@@ -45,7 +45,7 @@ void IceMan::doSomething() {
 				new_dir = right;
 				break;
 			case KEY_PRESS_SPACE:
-				// TODO
+				
 				break;
 			case KEY_PRESS_TAB:
 				if (nuggs > 0) {
@@ -55,6 +55,15 @@ void IceMan::doSomething() {
 				break;
 			case KEY_PRESS_ESCAPE:
 				beAnnoyed(INSTAKILL_DAMAGE);
+				break;
+			case KEY_PRESS_SONAR:
+				if (w.getPlayer()->getSonar() > 0) {
+					//reveal items in radius
+					w.revealObjects();
+					w.playSound(SOUND_SONAR);
+					//
+					w.getPlayer()->useSonar();
+				}
 				break;
 			}
 
@@ -159,14 +168,14 @@ void Water::doSomething() {
 		}
 	}
 }
-void Sonar::doSomething() {
+void Sonar::doSomething() { //collectible item
 	if (!dead) {
 		checkRadius();
 		if (affectActors) {
 			if (lifespan <= 0)
 				dead = true;
 			else
-				lifespan--;
+				lifespan-=10;
 		}
 	}
 }

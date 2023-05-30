@@ -87,13 +87,16 @@ public:
 	void addSonar() {
 		sonar++;
 	}
+	void useSonar() {
+		sonar--;
+	}
 private:
 	bool willCollide(std::pair<int, int> new_pos);
 
 	int health = ICEMAN_MAX_HEALTH;
 	int max_health = ICEMAN_MAX_HEALTH;
 	int water = ICEMAN_DEFAULT_WATER;
-	int sonar = ICEMAN_DEFAULT_SONAR;
+	int sonar = 999;//ICEMAN_DEFAULT_SONAR;
 	int nuggs = 0;
 	int numBarrels = 0;
 };
@@ -197,12 +200,11 @@ public:
 		: HiddenGoodie(world, SONAR_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_SONAR, startX, startY, dir, size, depth) {
 		affectPlayer = usingAsBribe;
 		affectActors = !usingAsBribe;
-		setVisible(usingAsBribe);
+		setVisible(!usingAsBribe);
 		lifespan = std::max(100, 300 - (10 * level));
 	}
 
 	void doSomething();
-
 private:
 	void updatePlayerInventory();
 	int lifespan = 0;
