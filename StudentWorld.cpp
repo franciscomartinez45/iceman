@@ -15,7 +15,7 @@ int StudentWorld::init() {
 	int num_boulders = std::min(getLevel() / 2 + 2, unsigned int(9));
 	int num_nuggs = std::max(5 - getLevel(), unsigned int(2));
 	int num_barrels = std::min(getLevel() + 2, unsigned int(21));
-	
+	int num_protestors = std::min(getLevel()+2 * 1.5,unsigned int (15));//
 	
 		
 	for (auto i : std::ranges::iota_view(0, num_boulders))
@@ -150,7 +150,7 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 		break;
 	
 	case ObjectType::Sonar:
-		objects.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), spawn_coords.first, spawn_coords.second));
+		objects.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), 0, 60));
 		break;
 	
 }
