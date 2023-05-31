@@ -7,6 +7,8 @@
 #include "GameWorld.h"
 #include <algorithm>
 #include <optional>
+#include <array>
+#include <variant>
 
 const int ACTOR_HEIGHT = 4;
 const int ACTOR_WIDTH_LIMIT = VIEW_WIDTH - 4;
@@ -103,6 +105,10 @@ public:
 	}
 private:
 	bool willCollide(std::pair<int, int> new_pos);
+
+	// TESTING FUNCTION - NOT INTENDED FOR REAL GAMEPLAY
+	void getReturnPath();
+	bool isReturning = false;
 
 	int health = ICEMAN_MAX_HEALTH;
 	int max_health = ICEMAN_MAX_HEALTH;
@@ -296,6 +302,9 @@ public:
 	}
 
 	void doSomething() { }
+
+	// stores whatever IceBlock is closest to a Protester's return point
+	std::optional<std::pair<int, int>> previous = std::nullopt;
 };
 
 const int TUNNEL_START_X = 30;
@@ -306,13 +315,11 @@ const unsigned int DEFAULT_ICE_DESTROY_RANGE = 4;
 
 class Ice {
 public:
-	Ice();
+	Ice(StudentWorld& world);
 	// smart pointers mean that we don't have to delete anything ourselves
 	
-	std::shared_ptr<IceBlock>& getBlock(int x, int y) {
-		// includes bounds checking
-		return iceObjects.at(x).at(y);
-	}
+	std::shared_ptr<IceBlock>& getBlock(int x, int y);
+	std::optional<std::pair<int, int>> getPrevBlock(int x, int y);
 	
 	bool destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size);
 
@@ -322,16 +329,21 @@ public:
 	size_t getNumOpenSquares() { return openSquares.size(); }
 	size_t getNumIceSquares() { return iceSquares.size(); }
 
-private:	
+private:
 	// a less disgusting way to write this would be appreciated
 	// using namespace std would just be a stopgap
 	// making the elements unique_ptrs without incurring the compiler's wrath would also be cool
-	std::vector<std::vector<std::shared_ptr<IceBlock>>> iceObjects = std::vector<std::vector<std::shared_ptr<IceBlock>>>(VIEW_WIDTH, std::vector<std::shared_ptr<IceBlock>>(VIEW_HEIGHT, nullptr));
+	std::array<std::array<std::shared_ptr<IceBlock>, VIEW_HEIGHT>, VIEW_WIDTH> iceObjects;
+	std::array<std::array<std::optional<std::pair<int, int>>, VIEW_HEIGHT>, VIEW_WIDTH> prevSpaces;
 
 	std::vector<std::pair<unsigned int, unsigned int>> openSquares;
 	std::vector<std::pair<unsigned int, unsigned int>> iceSquares;
 
 	void populateAvailableSquares();
+
+	void calculateExitPaths();
+
+	StudentWorld& w;
 };
 
 
