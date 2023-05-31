@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <list>
+#include <random>
 
 enum class ObjectType {
 	Boulder,
@@ -29,11 +30,7 @@ public:
 
 	virtual int move();
 
-	virtual void cleanUp(){
-		player.reset();
-		objects.clear();
-		ice.reset();
-	}
+	virtual void cleanUp();
 	
 	StudentWorld& getWorld() {
 		return *this;
@@ -69,6 +66,8 @@ private:
 	std::unique_ptr<IceMan> player = nullptr;
 	std::list<std::unique_ptr<Object>> objects;
 	std::unique_ptr<Ice> ice = nullptr;
+
+	std::default_random_engine generator;
 };
 
 #endif // STUDENTWORLD_H_

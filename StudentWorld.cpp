@@ -4,10 +4,22 @@
 #include <sstream>
 #include <iomanip>
 #include <array>
+#include <chrono>
 
 using namespace std;
 
 int StudentWorld::init() {
+	std::random_device seeder;
+
+	if (seeder.entropy() == 0) { // if the random_device is actually an engine
+		auto current_time = std::chrono::high_resolution_clock::now();
+		auto current_duration = current_time.time_since_epoch();
+		generator.seed(current_duration.count());
+	}
+	else
+		generator.seed(seeder());
+	
+
 	StudentWorld::player = std::make_unique<IceMan>(getWorld(), 30, 60);
 	ice = std::make_unique<Ice>();
 
@@ -43,8 +55,8 @@ int StudentWorld::move() {
 
 		int goodie_chance = getLevel() * 25 + 300; // magic numbers - boss's orders
 		
-		if (rand() % goodie_chance == 0) {
-			if (rand() % CHANCE_OF_SONAR == 0) {
+		if (std::uniform_int_distribution<int>(1,goodie_chance)(generator) == 1) {
+			if (std::uniform_int_distribution<int>(1, CHANCE_OF_SONAR)(generator) == 1) {
 				spawnObjectInIce(ObjectType::Sonar);
 			}
 			else {
@@ -68,10 +80,17 @@ int StudentWorld::move() {
 
 		return GWSTATUS_CONTINUE_GAME;
 	}
+	
 	return GWSTATUS_FINISHED_LEVEL;
 	
 }
-//void StudentWorld::cleanUp(){}
+
+void StudentWorld::cleanUp() {
+	player.reset();
+	objects.clear();
+	ice.reset();
+}
+
 GameWorld* createStudentWorld(string assetDir)
 {
 	return new StudentWorld(assetDir);
@@ -102,7 +121,8 @@ bool StudentWorld::isIntersectingObject(std::pair<unsigned int, unsigned int> p)
 }
 
 void StudentWorld::spawnWater() {
-	auto coord_index = rand();
+	auto openDistribution = std::uniform_int_distribution<int>(0, ice->getNumOpenSquares() - 1);
+	auto coord_index = openDistribution(generator);
 	auto water_coords_o = ice->getOpenSquare(coord_index);
 	if (water_coords_o) {
 		auto water_coords = water_coords_o.value();
@@ -131,8 +151,11 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 	// start of each level means that it
 	// won't be much of an issue (hopefully)
 	std::pair<unsigned int, unsigned int> spawn_coords;
+
+	auto iceDistribution = std::uniform_int_distribution<int>(0, ice->getNumIceSquares() - 1);
+
 	do {
-		spawn_coords = ice->getIceSquare(rand()).value(); // the map is guaranteed to have open ice squares at this point
+		spawn_coords = ice->getIceSquare(iceDistribution(generator)).value(); // the map is guaranteed to have open ice squares at this point
 	} while (!vetIceSpawnCoords(spawn_coords, 0, x_range_end, y_range_start, y_range_end));
 
 	switch (type) {
@@ -232,7 +255,7 @@ void StudentWorld::revealObjects() {
 			}
 		}
 	}
-}
+} // glorious bracket staircase
 
 void StudentWorld::spawnSquirt() {
 	objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
