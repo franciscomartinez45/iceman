@@ -21,7 +21,7 @@ int StudentWorld::init() {
 	
 
 	StudentWorld::player = std::make_unique<IceMan>(getWorld(), 30, 60);
-	ice = std::make_unique<Ice>();
+	ice = std::make_unique<Ice>(getWorld());
 
 	// spawn ice goodies
 	int num_boulders = std::min(getLevel() / 2 + 2, unsigned int(9));
@@ -259,4 +259,24 @@ void StudentWorld::revealObjects() {
 
 void StudentWorld::spawnSquirt() {
 	objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
+}
+
+bool StudentWorld::isIntersectingBoulder(unsigned int x, unsigned int y) {
+	for (auto& object : objects) {
+		if (object->isBoulder()) {
+			if (object->intersects(x, y))
+				return true;
+		}
+	}
+	return false;
+}
+
+bool StudentWorld::isIntersectingIce(unsigned int x, unsigned int y) {
+	for (auto i : std::ranges::iota_view(x, x + ACTOR_HEIGHT)) {
+		for (auto j : std::ranges::iota_view(y, y + ACTOR_HEIGHT)) {
+			if (ice->getBlock(i, j) != nullptr)
+				return true;
+		}
+	}
+	return false;
 }
