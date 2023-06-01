@@ -124,10 +124,10 @@ void IceMan::beAnnoyed(int annoy_value) {
 	}
 }
 
-bool IceMan::willCollide(std::pair<int, int> new_pos) {
+bool Actor::willCollide(std::pair<int, int> new_pos) {
 	if (new_pos.first < 0 or new_pos.first > ACTOR_WIDTH_LIMIT or new_pos.second < 0 or new_pos.second > ACTOR_WIDTH_LIMIT)
 		return true;
-	
+
 	for (auto& object : w.getObjects()) {
 		if (object->isBoulder() and object->intersects(new_pos.first, new_pos.second))
 			return true;
@@ -184,7 +184,7 @@ void Sonar::doSomething() { //collectible item
 			if (lifespan <= 0)
 				dead = true;
 			else
-				lifespan-=10;
+				lifespan -= 10;
 		}
 	}
 }
@@ -203,7 +203,7 @@ bool HiddenGoodie::checkRadius() {
 		setVisible(true);
 		return false;
 	}
-		
+
 	return Goodie::checkRadius();
 }
 
@@ -258,42 +258,42 @@ void Boulder::doSomething() {
 				moveTo(getX(), getY() - 1);
 				checkRadius();
 			}
-				
+
 			break;
 		}
 	}
 }
 void Squirt::doSomething() {
 	if (lifespan > 0 and !isDead()) {
-			switch (w.getPlayer()->getDirection()) {
-			case GraphObject::right:
-				currentPosition.first++;
-				break;
-			case GraphObject::left:
-				currentPosition.first--;
-				break;
-			case GraphObject::up:
-				currentPosition.second++;
-				break;
-			case GraphObject::down:
-				currentPosition.second--;
-				break;
-			}
-
-	
-			if (w.getIce()->getBlock(currentPosition.first, currentPosition.second)==nullptr) {
-				//check if it'll hit a protestor
-				//decrement protestors hit points
-				//else move
-				moveTo(currentPosition.first, currentPosition.second);
-				lifespan--;
-			}
-			else {
-				lifespan = 0;
-				dead = true;
-			}
+		switch (w.getPlayer()->getDirection()) {
+		case GraphObject::right:
+			currentPosition.first++;
+			break;
+		case GraphObject::left:
+			currentPosition.first--;
+			break;
+		case GraphObject::up:
+			currentPosition.second++;
+			break;
+		case GraphObject::down:
+			currentPosition.second--;
+			break;
 		}
-	
+
+
+		if (w.getIce()->getBlock(currentPosition.first, currentPosition.second) == nullptr) {
+			//check if it'll hit a protestor
+			//decrement protestors hit points
+			//else move
+			moveTo(currentPosition.first, currentPosition.second);
+			lifespan--;
+		}
+		else {
+			lifespan = 0;
+			dead = true;
+		}
+	}
+
 	else { dead = true; }
 }
 void Boulder::affectPlayerInRadius() {
@@ -331,7 +331,7 @@ bool Boulder::hasBoulderUnder() {
 	return false;
 }
 
-Ice::Ice() {
+Ice::Ice(StudentWorld& world) : w(world) {
 	// from <ranges>
 	// think python ranges, but C++ified (i.e. painfully verbose)
 	for (auto i : std::ranges::iota_view(0, VIEW_WIDTH)) {
@@ -347,6 +347,11 @@ Ice::Ice() {
 	populateAvailableSquares();
 }
 
+std::shared_ptr<IceBlock>& Ice::getBlock(int x, int y) {
+	// includes bounds checking
+	return iceObjects.at(x).at(y);
+}
+
 // removes ice in an x_size by y_size block from the given coordinates
 // returns false if no ice was in the area, true otherwise
 bool Ice::destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size) {
@@ -360,7 +365,7 @@ bool Ice::destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsign
 			}
 		}
 	}
-	
+
 	if (destroyed_ice)
 		populateAvailableSquares();
 
@@ -385,7 +390,7 @@ std::optional<std::pair<unsigned int, unsigned int>> Ice::getIceSquare(unsigned 
 // (useful for spawning objects)
 // it would do us good to move this into a thread at some point
 void Ice::populateAvailableSquares() {
-	
+
 	openSquares.erase(openSquares.begin(), openSquares.end());
 	iceSquares.erase(iceSquares.begin(), iceSquares.end());
 
@@ -444,8 +449,8 @@ void Ice::populateAvailableSquares() {
 	}*/
 }
 double Squirt::getDistanceToPlayer() { return 0.0; }
-double Squirt::getDistanceToActor(std::unique_ptr<Actor>& object) {return 0.0; }
+double Squirt::getDistanceToActor(std::unique_ptr<Actor>& object) { return 0.0; }
 
 bool Squirt::checkRadius() { return true; }
-void Squirt::affectPlayerInRadius(){}
-void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object){}
+void Squirt::affectPlayerInRadius() {}
+void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object) {}

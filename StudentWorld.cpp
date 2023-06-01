@@ -18,25 +18,25 @@ int StudentWorld::init() {
 	}
 	else
 		generator.seed(seeder());
-	
+
 
 	StudentWorld::player = std::make_unique<IceMan>(getWorld(), 30, 60);
-	ice = std::make_unique<Ice>();
+	ice = std::make_unique<Ice>(getWorld());
 
 	// spawn ice goodies
 	int num_boulders = std::min(getLevel() / 2 + 2, unsigned int(9));
 	int num_nuggs = std::max(5 - getLevel(), unsigned int(2));
 	int num_barrels = std::min(getLevel() + 2, unsigned int(21));
-	
-		
+
+
 	for (auto i : std::ranges::iota_view(0, num_boulders))
 		spawnObjectInIce(ObjectType::Boulder);
 	for (auto i : std::ranges::iota_view(0, num_nuggs))
 		spawnObjectInIce(ObjectType::Nugg);
-	for (auto i : std::ranges::iota_view(0, num_barrels)) 
+	for (auto i : std::ranges::iota_view(0, num_barrels))
 		spawnObjectInIce(ObjectType::Barrel);
-		player->addOil(num_barrels);
-	
+	player->addOil(num_barrels);
+
 	// useful test case - you may want to repurpose this for the barrels
 	//props.push_back(std::make_unique<Nugg>(getWorld(), false, 60, 60));
 
@@ -53,8 +53,8 @@ int StudentWorld::move() {
 			object->doSomething();
 
 		int goodie_chance = getLevel() * 25 + 300; // magic numbers - boss's orders
-		
-		if (std::uniform_int_distribution<int>(1,goodie_chance)(generator) == 1) {
+
+		if (std::uniform_int_distribution<int>(1, goodie_chance)(generator) == 1) {
 			if (std::uniform_int_distribution<int>(1, CHANCE_OF_SONAR)(generator) == 1) {
 				spawnObjectInIce(ObjectType::Sonar);
 			}
@@ -79,9 +79,9 @@ int StudentWorld::move() {
 
 		return GWSTATUS_CONTINUE_GAME;
 	}
-	
+
 	return GWSTATUS_FINISHED_LEVEL;
-	
+
 }
 
 void StudentWorld::cleanUp() {
@@ -170,12 +170,12 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 	case ObjectType::Barrel:
 		objects.push_back(std::make_unique<Barrel>(getWorld(), spawn_coords.first, spawn_coords.second));
 		break;
-	
+
 	case ObjectType::Sonar:
 		objects.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), 0, 60));
 		break;
-	
-}
+
+	}
 }
 
 const double MIN_SPAWN_RADIUS = 6.0;
@@ -184,7 +184,7 @@ const double MIN_SPAWN_RADIUS = 6.0;
 // and whether or not it falls too close to any preexisting objects
 bool StudentWorld::vetIceSpawnCoords(std::pair<unsigned int, unsigned int> p,
 	unsigned int x_range_start, unsigned int x_range_end, unsigned int y_range_start, unsigned int y_range_end) {
-	
+
 	// range checking
 	if (p.first < x_range_start or p.first > x_range_end or p.second < y_range_start or p.second > y_range_end)
 		return false;
@@ -217,7 +217,7 @@ void StudentWorld::setStatusBar() {
 	status << "Health:";
 	status << std::setfill(' ') << std::setw(3);
 	status << getPlayerHealth() << '%' << separator;
-	
+
 	// water
 	status << "Water:";
 	status << std::setfill(' ') << std::setw(2);
@@ -264,11 +264,11 @@ void StudentWorld::spawnSquirt() {
 		objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
 		break;
 	case GraphObject::right:
-		objects.push_back(make_unique<Squirt>(getWorld(), player->getX()+3, player->getY(), player->getDirection(), 1.0, 1.0));
+		objects.push_back(make_unique<Squirt>(getWorld(), player->getX() + 3, player->getY(), player->getDirection(), 1.0, 1.0));
 		break;
 	case GraphObject::up:
-		objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY()+3, player->getDirection(), 1.0, 1.0));
+		objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY() + 3, player->getDirection(), 1.0, 1.0));
 		break;
 	}
-	
+
 }

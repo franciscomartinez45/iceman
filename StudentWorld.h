@@ -14,7 +14,7 @@ enum class ObjectType {
 	Nugg,
 	Barrel,
 	Sonar
-	
+
 };
 
 class StudentWorld : public GameWorld
@@ -31,11 +31,11 @@ public:
 	virtual int move();
 
 	virtual void cleanUp();
-	
+
 	StudentWorld& getWorld() {
 		return *this;
 	}
-	
+
 	std::unique_ptr<Ice>& getIce() {
 		return ice;
 	}
@@ -60,7 +60,7 @@ private:
 		unsigned int x_range_start, unsigned int x_range_end, unsigned int y_range_start, unsigned int y_range_end);
 
 	int getPlayerHealth() { return double(player->getHealth()) / double(ICEMAN_MAX_HEALTH) * 100; }
-	
+
 	void setStatusBar();
 
 	std::unique_ptr<IceMan> player = nullptr;
