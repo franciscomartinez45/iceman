@@ -21,13 +21,12 @@ int StudentWorld::init() {
 	
 
 	StudentWorld::player = std::make_unique<IceMan>(getWorld(), 30, 60);
-	ice = std::make_unique<Ice>(getWorld());
+	ice = std::make_unique<Ice>();
 
 	// spawn ice goodies
 	int num_boulders = std::min(getLevel() / 2 + 2, unsigned int(9));
 	int num_nuggs = std::max(5 - getLevel(), unsigned int(2));
 	int num_barrels = std::min(getLevel() + 2, unsigned int(21));
-	
 	
 		
 	for (auto i : std::ranges::iota_view(0, num_boulders))
@@ -173,7 +172,7 @@ void StudentWorld::spawnObjectInIce(ObjectType type) {
 		break;
 	
 	case ObjectType::Sonar:
-		objects.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), spawn_coords.first, spawn_coords.second));
+		objects.push_back(std::make_unique<Sonar>(getWorld(), getWorld().getLevel(), 0, 60));
 		break;
 	
 }
@@ -258,25 +257,18 @@ void StudentWorld::revealObjects() {
 } // glorious bracket staircase
 
 void StudentWorld::spawnSquirt() {
-	objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
-}
-
-bool StudentWorld::isIntersectingBoulder(unsigned int x, unsigned int y) {
-	for (auto& object : objects) {
-		if (object->isBoulder()) {
-			if (object->intersects(x, y))
-				return true;
-		}
+	auto dir = player->getDirection();
+	switch (dir) {
+	case GraphObject::left:
+	case GraphObject::down:
+		objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
+		break;
+	case GraphObject::right:
+		objects.push_back(make_unique<Squirt>(getWorld(), player->getX()+3, player->getY(), player->getDirection(), 1.0, 1.0));
+		break;
+	case GraphObject::up:
+		objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY()+3, player->getDirection(), 1.0, 1.0));
+		break;
 	}
-	return false;
-}
-
-bool StudentWorld::isIntersectingIce(unsigned int x, unsigned int y) {
-	for (auto i : std::ranges::iota_view(x, x + ACTOR_HEIGHT)) {
-		for (auto j : std::ranges::iota_view(y, y + ACTOR_HEIGHT)) {
-			if (ice->getBlock(i, j) != nullptr)
-				return true;
-		}
-	}
-	return false;
+	
 }

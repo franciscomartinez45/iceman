@@ -65,6 +65,10 @@ protected:
 
 	int max_health;
 	int health = max_health;
+	Actor(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+		: Object(world, true, imageID, startX, startY, dir, size, depth){}
+
+	virtual void beAnnoyed(int annoy_value) =0;
 };
 
 const int ICEMAN_MAX_HEALTH = 10;
@@ -117,7 +121,7 @@ private:
 	// TESTING FUNCTION - NOT INTENDED FOR REAL GAMEPLAY
 	void getReturnPath();	
 
-	int water = ICEMAN_DEFAULT_WATER;
+  int water = ICEMAN_DEFAULT_WATER;
 	int sonar = 999;//ICEMAN_DEFAULT_SONAR;
 	int nuggs = 0;
 	int numBarrels = 0;
