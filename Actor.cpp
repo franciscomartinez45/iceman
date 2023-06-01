@@ -124,7 +124,7 @@ void IceMan::beAnnoyed(int annoy_value) {
 	}
 }
 
-bool IceMan::willCollide(std::pair<int, int> new_pos) {
+bool Actor::willCollide(std::pair<int, int> new_pos) {
 	if (new_pos.first < 0 or new_pos.first > ACTOR_WIDTH_LIMIT or new_pos.second < 0 or new_pos.second > ACTOR_WIDTH_LIMIT)
 		return true;
 	
@@ -331,7 +331,7 @@ bool Boulder::hasBoulderUnder() {
 	return false;
 }
 
-Ice::Ice() {
+Ice::Ice(StudentWorld& world) : w(world) {
 	// from <ranges>
 	// think python ranges, but C++ified (i.e. painfully verbose)
 	for (auto i : std::ranges::iota_view(0, VIEW_WIDTH)) {
@@ -345,6 +345,11 @@ Ice::Ice() {
 	openSquares.reserve(VIEW_WIDTH * (VIEW_HEIGHT - ACTOR_HEIGHT));
 	iceSquares.reserve(VIEW_WIDTH * (VIEW_HEIGHT - ACTOR_HEIGHT));
 	populateAvailableSquares();
+}
+
+std::shared_ptr<IceBlock>& Ice::getBlock(int x, int y) {
+	// includes bounds checking
+	return iceObjects.at(x).at(y);
 }
 
 // removes ice in an x_size by y_size block from the given coordinates
