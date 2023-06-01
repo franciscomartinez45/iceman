@@ -127,13 +127,33 @@ void IceMan::beAnnoyed(int annoy_value) {
 bool Actor::willCollide(std::pair<int, int> new_pos) {
 	if (new_pos.first < 0 or new_pos.first > ACTOR_WIDTH_LIMIT or new_pos.second < 0 or new_pos.second > ACTOR_WIDTH_LIMIT)
 		return true;
-
+	
 	for (auto& object : w.getObjects()) {
 		if (object->isBoulder() and object->intersects(new_pos.first, new_pos.second))
 			return true;
 	}
 
 	return false;
+}
+
+Protester::Protester(StudentWorld& world, int startX, int startY, Direction dir, double size, unsigned int depth)
+	: Actor(world, PROTESTER_MAX_HEALTH, IID_PROTESTER, startX, startY, dir, size, depth) {
+	updateRestTicks();
+}
+
+void Protester::doSomething() {
+	if (!isDead()) {
+		if (!isResting()) {
+			if (leavingOilField) {
+				moveTowardsOilField();
+			}
+			else if (!attemptShout()) {
+				if (!attemptMoveToIceman()) {
+					pickNewDirection();
+				}
+			}
+		}
+	}
 }
 
 const unsigned int WATER_PICKUP_AMOUNT = 5;
@@ -184,7 +204,7 @@ void Sonar::doSomething() { //collectible item
 			if (lifespan <= 0)
 				dead = true;
 			else
-				lifespan -= 10;
+				lifespan-=10;
 		}
 	}
 }
@@ -203,7 +223,7 @@ bool HiddenGoodie::checkRadius() {
 		setVisible(true);
 		return false;
 	}
-
+		
 	return Goodie::checkRadius();
 }
 
@@ -258,42 +278,42 @@ void Boulder::doSomething() {
 				moveTo(getX(), getY() - 1);
 				checkRadius();
 			}
-
+				
 			break;
 		}
 	}
 }
 void Squirt::doSomething() {
 	if (lifespan > 0 and !isDead()) {
-		switch (w.getPlayer()->getDirection()) {
-		case GraphObject::right:
-			currentPosition.first++;
-			break;
-		case GraphObject::left:
-			currentPosition.first--;
-			break;
-		case GraphObject::up:
-			currentPosition.second++;
-			break;
-		case GraphObject::down:
-			currentPosition.second--;
-			break;
-		}
+			switch (w.getPlayer()->getDirection()) {
+			case GraphObject::right:
+				currentPosition.first++;
+				break;
+			case GraphObject::left:
+				currentPosition.first--;
+				break;
+			case GraphObject::up:
+				currentPosition.second++;
+				break;
+			case GraphObject::down:
+				currentPosition.second--;
+				break;
+			}
 
-
-		if (w.getIce()->getBlock(currentPosition.first, currentPosition.second) == nullptr) {
-			//check if it'll hit a protestor
-			//decrement protestors hit points
-			//else move
-			moveTo(currentPosition.first, currentPosition.second);
-			lifespan--;
+	
+			if (w.getIce()->getBlock(currentPosition.first, currentPosition.second)==nullptr) {
+				//check if it'll hit a protestor
+				//decrement protestors hit points
+				//else move
+				moveTo(currentPosition.first, currentPosition.second);
+				lifespan--;
+			}
+			else {
+				lifespan = 0;
+				dead = true;
+			}
 		}
-		else {
-			lifespan = 0;
-			dead = true;
-		}
-	}
-
+	
 	else { dead = true; }
 }
 void Boulder::affectPlayerInRadius() {
@@ -365,7 +385,7 @@ bool Ice::destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsign
 			}
 		}
 	}
-
+	
 	if (destroyed_ice)
 		populateAvailableSquares();
 
@@ -390,7 +410,7 @@ std::optional<std::pair<unsigned int, unsigned int>> Ice::getIceSquare(unsigned 
 // (useful for spawning objects)
 // it would do us good to move this into a thread at some point
 void Ice::populateAvailableSquares() {
-
+	
 	openSquares.erase(openSquares.begin(), openSquares.end());
 	iceSquares.erase(iceSquares.begin(), iceSquares.end());
 
@@ -449,8 +469,8 @@ void Ice::populateAvailableSquares() {
 	}*/
 }
 double Squirt::getDistanceToPlayer() { return 0.0; }
-double Squirt::getDistanceToActor(std::unique_ptr<Actor>& object) { return 0.0; }
+double Squirt::getDistanceToActor(std::unique_ptr<Actor>& object) {return 0.0; }
 
 bool Squirt::checkRadius() { return true; }
-void Squirt::affectPlayerInRadius() {}
-void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object) {}
+void Squirt::affectPlayerInRadius(){}
+void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object){}
