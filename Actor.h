@@ -1,570 +1,338 @@
-#include "Actor.h"
-#include "StudentWorld.h"
-#include <cmath>
-#include <array>
-#include <bitset>
-#include <queue>
+#ifndef ACTOR_H_
+#define ACTOR_H_
 
-// distance formula time
-float Object::getDistanceTo(Object& other) {
-	return sqrt(pow(this->getX() - other.getX(), 2) + pow(this->getY() - other.getY(), 2));
-}
+#include "GraphObject.h"
+#include <vector>
+#include <ranges> // requires C++20
+#include "GameWorld.h"
+#include <algorithm>
+#include <optional>
 
-float Object::getDistanceTo(std::pair<unsigned int, unsigned int> p) {
-	return sqrt(pow(this->getX() - p.first, 2) + pow(this->getY() - p.second, 2));
-}
+const int ACTOR_HEIGHT = 4;
+const int ACTOR_WIDTH_LIMIT = VIEW_WIDTH - 4;
+const int ACTOR_HEIGHT_LIMIT = VIEW_HEIGHT - 4;
 
-bool Object::contains(unsigned int x, unsigned int y) {
-	return ((x >= getX()) and (x < getX() + int(getSize() * 4)) and (y >= getY()) and (y < getY() + int(getSize() * 4)));
-}
+class StudentWorld; // Gordian knotting the circular dependency
 
-bool Object::intersects(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size) {
-	return (contains(x, y) or contains(x + x_size - 1, y + y_size - 1)
-		or contains(x, y + y_size - 1) or contains(x + x_size - 1, y));
-}
-
-double Object::getDistanceToPlayer() {
-	return getDistanceTo(*(w.getPlayer().get()));
-}
-
-std::optional<double> Object::getDistanceToActor(std::unique_ptr<Object>& actor) {
-	return getDistanceTo(*(actor.get()));
-}
-
-bool Actor::willCollide(std::pair<int, int> new_pos) {
-	if (new_pos.first < 0 or new_pos.first > ACTOR_WIDTH_LIMIT or new_pos.second < 0 or new_pos.second > ACTOR_WIDTH_LIMIT)
-		return true;
-
-	for (auto& object : w.getObjects()) {
-		if (object->isBoulder() and object->intersects(new_pos.first, new_pos.second))
-			return true;
-	}
-
-	return false;
-}
-
-void IceMan::doSomething() {
-	if (!isDead()) {
-		
-		// TESTING FUNCTION
-		// REMOVE SOON!
-		/*if (isReturning) {
-			auto b = w.getIce()->getPrevBlock(getX(), getY());
-			if (!b) {
-				w.playSound(SOUND_FOUND_OIL);
-				isReturning = false;
-			}
-			else {
-				auto p = b.value();
-				moveTo(p.first, p.second);
-			}
-			return;
-		}*/
-
-		// remove intersecting ice
-		if (w.getIce()->destroyIce(getX(), getY(), ACTOR_HEIGHT, ACTOR_HEIGHT))
-			w.playSound(SOUND_DIG);
-
-		int key;
-		if (IceMan::w.getKey(key)) {
-			Direction new_dir = none;
-			switch (key) {
-			case KEY_PRESS_UP:
-				new_dir = up;
-				break;
-			case KEY_PRESS_DOWN:
-				new_dir = down;
-				break;
-			case KEY_PRESS_LEFT:
-				new_dir = left;
-				break;
-			case KEY_PRESS_RIGHT:
-				new_dir = right;
-				break;
-			case KEY_PRESS_SPACE:
-				//subtract water count
-				if (getWater() > 0) {
-					useWater();
-					//water sound
-					w.playSound(SOUND_PLAYER_SQUIRT);
-					w.spawnSquirt();
-				}
-				//squirt water
-				break;
-			case KEY_PRESS_TAB:
-				if (nuggs > 0) {
-					w.spawnPlayerNugg();
-					nuggs--;
-				}
-				break;
-			case KEY_PRESS_ESCAPE:
-				beAnnoyed(INSTAKILL_DAMAGE);
-				break;
-			case 'Z':
-			case 'z':
-				if (getSonar() > 0) {
-					//reveal items in radius
-					w.revealObjects();
-					w.playSound(SOUND_SONAR);
-					//subtract sonar count
-					useSonar();
-				}
-				break;
-			}
-
-			if (new_dir != none) {
-				if (new_dir != getDirection())
-					setDirection(new_dir);
-
-				else {
-					auto new_pos = std::make_pair<int>(getX(), getY());
-					auto prev_pos = new_pos;
-
-					switch (new_dir) {
-					case up:
-						new_pos.second++;
-						break;
-					case down:
-						new_pos.second--;
-						break;
-					case left:
-						new_pos.first--;
-						break;
-					case right:
-						new_pos.first++;
-						break;
-					}
-
-					// bounds checking
-					if (willCollide(new_pos))
-						new_pos = prev_pos;
-					moveTo(new_pos.first, new_pos.second);
-				}
-			}
-		}
-	}
-} // glorious bracket staircase
-
-void IceMan::beAnnoyed(int annoy_value) {
-	health -= annoy_value;
-	if (health <= 0) {
-		health = 0;
-		dead = true;
-		w.playSound(SOUND_PLAYER_GIVE_UP);
-	}
-}
-
-void IceMan::getReturnPath() {
-	std::cout << "Start!\n";
-	std::optional<std::pair<int, int>> coords = std::make_pair(getX(), getY());
-
-	while (coords != std::nullopt) {
-		auto& coordsv = coords.value();
-		std::cout << coordsv.first << ' ' << coordsv.second << '\n';
-		coords = w.getIce()->getPrevBlock(coordsv.first, coordsv.second);
-	}
-	std::cout << "DONE\n";
-}
-
-Protester::Protester(StudentWorld& world, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0)
-	: Actor(world, PROTESTER_MAX_HEALTH, IID_PLAYER, startX, startY, dir, size, depth) {
-	updateRestTicks();
-}
-
-void Protester::doSomething() {
-	if (!isDead()) {
-		if (!isResting()) {
-			if (leavingOilField) {
-				moveTowardsOilField();
-			}
-			else if (!attemptShout()) {
-				if (!attemptMoveToIceman()) {
-					pickNewDirection();
-				}
-			}
-		}
-	}
-}
-
-const unsigned int WATER_PICKUP_AMOUNT = 5;
-
-bool Prop::checkRadius() {
-	bool found = false;
-	if (affectPlayer) {
-		if (getDistanceToPlayer() <= radius) {
-			affectPlayerInRadius();
-			found = true;
-		}
-	}
-	if (affectActors) {
-		for (auto& object : w.getObjects()) {
-			if (object->isActor()) {
-				if (getDistanceToActor(object) <= ITEM_PICKUP_DISTANCE) {
-					affectObjectInRadius(object);
-					found = true;
-				}
-			}
-		}
-	}
-	return found;
-}
-
-void Goodie::affectPlayerInRadius() {
-	dead = true;
-
-	w.playSound(obtainSoundEffect);
-	updatePlayerInventory();
-	w.increaseScore(scoreValue);
-}
-
-void Water::doSomething() {
-	if (!dead) {
-		if (!checkRadius()) {
-			if (lifespan <= 0)
-				dead = true;
-			else
-				lifespan--;
-		}
-	}
-}
-void Sonar::doSomething() { //collectible item
-	if (!dead) {
-		checkRadius();
-		if (affectActors) {
-			if (lifespan <= 0)
-				dead = true;
-			else
-				lifespan-=10;
-		}
-	}
-}
-void Sonar::updatePlayerInventory() {
-	w.getPlayer()->addSonar();
-}
-
-
-
-void Water::updatePlayerInventory() {
-	w.getPlayer()->addWater(WATER_PICKUP_AMOUNT);
-}
-
-bool HiddenGoodie::checkRadius() {
-	if (!isVisible() and getDistanceToPlayer() <= ITEM_REVEAL_DISTANCE) {
+class Object : public GraphObject {
+public:
+	Object(StudentWorld& world, bool actor, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+	: GraphObject(imageID, startX, startY, dir, size, depth), w(world), actorStatus(actor) {
 		setVisible(true);
-		return false;
 	}
+
+	float getDistanceTo(Object& other);
+	float getDistanceTo(std::pair<unsigned int, unsigned int> p);
+	bool contains(unsigned int x, unsigned int y);
+	bool intersects(unsigned int x, unsigned int y, unsigned int x_size = ACTOR_HEIGHT, unsigned int y_size = ACTOR_HEIGHT);
+
+	bool isDead() { return dead; }
+	bool isActor() { return actorStatus; }
+	virtual bool isBoulder() { return false; }
+
+	virtual void doSomething() = 0;
+	virtual void beAnnoyed(int annoy_value) = 0;
+
+protected:
+	double getDistanceToPlayer();
+	std::optional<double> getDistanceToActor(std::unique_ptr<Object>& object);
+
+	bool dead = false;
+
+	const bool actorStatus;
+
+	StudentWorld& w; // passed in during init()
+};
+
+const int INSTAKILL_DAMAGE = 100;
+
+class Actor : public Object {
+public:
+	Actor(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+		: Object(world, true, imageID, startX, startY, dir, size, depth){}
+
+	virtual void beAnnoyed(int annoy_value) =0;
+};
+
+const int ICEMAN_MAX_HEALTH = 10;
+const int ICEMAN_DEFAULT_WATER = 5;
+const int ICEMAN_DEFAULT_SONAR = 1;
+
+const int CAP_TWO_DIGITS = 99;
+// further class modualarization to come
+class IceMan : public Actor {
+public:
+	IceMan(StudentWorld& world, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+		: Actor(world, IID_PLAYER, startX, startY, dir, size, depth)  {
+	}
+	void doSomething();
+	void beAnnoyed(int annoy_value);
+
+	int getHealth() { return health; }
+	int getWater() { return water; }
+	int getSonar() { return sonar; }
+	int getNuggs() { return nuggs; }
+	int getOil() {return numBarrels;}
+
+
+	void addWater(unsigned int add) { 
+		water += add; 
+		if (water > CAP_TWO_DIGITS)
+			water = CAP_TWO_DIGITS;
+	}
+
+	void addNuggs() {
+		nuggs++;
+		if (nuggs > CAP_TWO_DIGITS)
+			nuggs = CAP_TWO_DIGITS;
+	}
+	void foundOil() {
+		numBarrels--;
+	}
+	void addOil(int number) {
+		numBarrels += number;
+	}
+	void addSonar() {
+		sonar++;
+	}
+	void useSonar() {
+		sonar--;
+	}
+	void useWater() {
+		water--;
+	}
+private:
+	bool willCollide(std::pair<int, int> new_pos);
+
+	int health = ICEMAN_MAX_HEALTH;
+	int max_health = ICEMAN_MAX_HEALTH;
+	int water = ICEMAN_DEFAULT_WATER;
+	int sonar = 999;//ICEMAN_DEFAULT_SONAR;
+	int nuggs = 0;
+	int numBarrels = 0;
+};
+
+const int ICE_DEPTH = 3;
+const int GOODIE_DEPTH = 2;
+const int BOULDER_DEPTH = 1;
+
+const double ITEM_PICKUP_DISTANCE = 3.0;
+
+class Prop : public Object {
+public:
+	Prop(StudentWorld& world, bool affectsPlayer, bool affectsActors, double affectRadius, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: Object(world, false, imageID, startX, startY, dir, size, depth), affectPlayer(affectsPlayer), affectActors(affectsActors), radius(affectRadius) {}
+
+	virtual void beAnnoyed(int annoy_value) { }
+
+protected:
+
+	virtual bool checkRadius();
+	virtual void affectPlayerInRadius() { } ;
+	virtual void affectObjectInRadius(std::unique_ptr<Object>& object) { };
+	virtual bool isBoulder() { return false; }
+
+	bool affectPlayer;
+	bool affectActors;
+
+	double radius;
+};
+
+class Goodie : public Prop {
+public:
+	Goodie(StudentWorld& world, int pointValue, const unsigned int soundID, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: Prop(world, true, false, ITEM_PICKUP_DISTANCE, imageID, startX, startY, dir, size, depth), obtainSoundEffect(soundID), scoreValue(pointValue) {}
+
+protected:
+	void affectPlayerInRadius();
+	virtual void updatePlayerInventory()=0;
+	
+	const unsigned int obtainSoundEffect;
+	int scoreValue;
+};
+
+const unsigned int WATER_PICKUP_SCORE = 100;
+class Water : public Goodie {
+public:
+	Water(StudentWorld& world, int level, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: Goodie(world, WATER_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_WATER_POOL, startX, startY, dir, size, depth) {
+		lifespan = std::max(100, 300 - (10 * level));
+	}
+
+	void doSomething();
+
+private:
+	void updatePlayerInventory();
+	virtual void affectObjectInRadius(std::unique_ptr<Actor>& object) {}
+
+	int lifespan = 0;
+};
+
+
+const double ITEM_REVEAL_DISTANCE = 4.0;
+
+// literally just calls setVisible() again at the start of the constructor
+class HiddenGoodie : public Goodie {
+public:
+	HiddenGoodie(StudentWorld& world, int pointValue, const unsigned int soundID, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: Goodie(world, pointValue, soundID, imageID, startX, startY, dir, size, depth) {
+		setVisible(false);
+	}
+
+protected:
+	bool checkRadius();
+
+	virtual void updatePlayerInventory()=0;
+	virtual void affectObjectInRadius(std::unique_ptr<Actor>& object) {}
+};
+const unsigned int BARREL_PICKUP_SCORE = 1'000;
+class Barrel : public HiddenGoodie {
+public:
+	Barrel(StudentWorld& world, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: HiddenGoodie(world, BARREL_PICKUP_SCORE, SOUND_FOUND_OIL, IID_BARREL, startX, startY, dir, size, depth) { }
+
+	void doSomething();
+
+private:
+	void updatePlayerInventory();
+
+
+};
+const unsigned int SONAR_PICKUP_SCORE = 75;
+class Sonar : public HiddenGoodie {
+public:
+	Sonar(StudentWorld& world,int level, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: HiddenGoodie(world, SONAR_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_SONAR, startX, startY, dir, size, depth) {
+		lifespan = std::max(100, 300 - (10 * level));
+	}
+
+	void doSomething();
+private:
+	void updatePlayerInventory();
+	int lifespan = 0;
+
+};
+const unsigned int NUGG_PICKUP_SCORE = 10;
+const int NUGG_LIFESPAN = 100;
+class Nugg : public HiddenGoodie {
+public:
+	Nugg(StudentWorld& world, bool usingAsBribe, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+		: HiddenGoodie(world, NUGG_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_GOLD, startX, startY, dir, size, depth) {
+		affectPlayer = !usingAsBribe;
+		affectActors = usingAsBribe;
+		setVisible(usingAsBribe);
+	}
+
+	void doSomething();
+
+private:
+	void updatePlayerInventory();
+
+	int lifespan = NUGG_LIFESPAN;
+};
+const int SQUIRT_TRAVEL_DISTANCE = 4;
+class Squirt : public Prop {
+public:
+	Squirt(StudentWorld& world, int startX, int startY, Direction dir, double size = 1.0, unsigned int depth = 1.0)
+		: Prop(world,true,true,ITEM_PICKUP_DISTANCE, IID_WATER_SPURT,startX,startY,dir,size,depth){
+		affectPlayer = false;
+		affectActors = true;
+		setVisible(true);
+		lifespan = SQUIRT_TRAVEL_DISTANCE;
+		currentPosition.first = startX;
+		currentPosition.second = startY;
 		
-	return Goodie::checkRadius();
-}
-
-void Nugg::updatePlayerInventory() {
-	w.getPlayer()->addNuggs();
-}
-
-void Nugg::doSomething() {
-	if (!dead) {
-		checkRadius();
-
-		if (affectActors) {
-			if (lifespan <= 0)
-				dead = true;
-			else
-				lifespan--;
-		}
 	}
-}
-void Barrel::doSomething() {
-	if (!dead) {
-		checkRadius();
-		if (affectActors) {
-			dead = true;
-		}
-	}
-}
-void Barrel::updatePlayerInventory() {
-	w.getPlayer()->foundOil();
-}
-void Boulder::doSomething() {
-	if (!isDead()) {
-		switch (state) {
-		case BoulderState::Stable:
-			if (!hasIceUnder())
-				state = BoulderState::Jostling;
-			break;
+	void doSomething();
+	double getDistanceToPlayer();
+	double getDistanceToActor(std::unique_ptr<Actor>& object);
 
-		case BoulderState::Jostling:
-			if (jostleTimer == 0) {
-				state = BoulderState::Falling;
-				w.playSound(SOUND_FALLING_ROCK);
-			}
-			else
-				jostleTimer--;
-			break;
+	bool checkRadius();
+	void affectPlayerInRadius();
+	void affectObjectInRadius(std::unique_ptr<Actor>& object);
+	void move();
+private:
+	int lifespan = 0;
+	std::pair<int, int> currentPosition;
+};
 
-		case BoulderState::Falling:
-			if (getY() == 0 or hasIceUnder() or hasBoulderUnder())
-				dead = true;
-			else {
-				moveTo(getX(), getY() - 1);
-				checkRadius();
-			}
-				
-			break;
-		}
+
+enum class BoulderState {
+	Stable,
+	Jostling,
+	Falling
+};
+
+const int BOULDER_WAIT_TIME = 30;
+
+class Boulder : public Prop {
+public:
+	Boulder(StudentWorld& world, int startX, int startY, Direction dir = down, double size = 1.0, unsigned int depth = BOULDER_DEPTH)
+		: Prop(world, true, true, ITEM_PICKUP_DISTANCE, IID_BOULDER, startX, startY, dir, size, depth) {}
+
+	void doSomething();
+
+	bool isBoulder() { return true; }
+
+private:
+	void affectPlayerInRadius();
+	void affectObjectInRadius(std::unique_ptr<Actor>& object);
+
+	bool hasIceUnder();
+	bool hasBoulderUnder();
+
+	BoulderState state = BoulderState::Stable;
+	int jostleTimer = BOULDER_WAIT_TIME;
+};
+
+const double ICE_SIZE = 0.25;
+
+// ice really doesn't need anything more than basic functionality
+class IceBlock : public GraphObject {
+public:
+	IceBlock(int startX, int startY, Direction dir = right, double size = ICE_SIZE, unsigned int depth = ICE_DEPTH)
+		: GraphObject(IID_ICE, startX, startY, dir, size, depth) {
+		setVisible(true);
 	}
-}
-void Squirt::doSomething() {
-	if (lifespan > 0 and !isDead()) {
-			switch (w.getPlayer()->getDirection()) {
-			case GraphObject::right:
-				currentPosition.first++;
-				break;
-			case GraphObject::left:
-				currentPosition.first--;
-				break;
-			case GraphObject::up:
-				currentPosition.second++;
-				break;
-			case GraphObject::down:
-				currentPosition.second--;
-				break;
-			}
-			moveTo(currentPosition.first, currentPosition.second);
-			lifespan--;
-		}
+
+	void doSomething() { }
+};
+
+const int TUNNEL_START_X = 30;
+const int TUNNEL_END_X = 33;
+const int TUNNEL_END_Y = 4;
+
+const unsigned int DEFAULT_ICE_DESTROY_RANGE = 4;
+
+class Ice {
+public:
+	Ice();
+	// smart pointers mean that we don't have to delete anything ourselves
 	
-	else { dead = true; }
-}
-void Boulder::affectPlayerInRadius() {
-	w.getPlayer()->beAnnoyed(INSTAKILL_DAMAGE);
-}
-
-void Boulder::affectObjectInRadius(std::unique_ptr<Actor>& object) {
-	// TODO
-}
-
-bool Boulder::hasIceUnder() {
-	auto j = getY() - 1;
-	if (j < 0)
-		return false;
-
-	for (auto i : std::ranges::iota_view(getX(), getX() + ACTOR_HEIGHT)) {
-		if (w.getIce()->getBlock(i, j) != nullptr)
-			return true;
-	}
-	return false;
-}
-
-bool Boulder::hasBoulderUnder() {
-	if ((getY() - ACTOR_HEIGHT) < 0)
-		return false;
-
-	for (auto& object : w.getObjects()) {
-		if (object->isBoulder()) {
-			if ((object->getY() == getY() + ACTOR_HEIGHT - 1)
-				and (object->getX() > getX() - ACTOR_HEIGHT)
-				and (object->getX() < getX() + ACTOR_HEIGHT))
-				return true;
-		}
-	}
-	return false;
-}
-
-Ice::Ice(StudentWorld& world) : w(world) {
-	for (auto& arr : prevSpaces)
-		arr.fill(std::nullopt);
-
-	for (auto& arr : iceObjects)
-		arr.fill(nullptr);
-
-	// from <ranges>
-	// think python ranges, but C++ified (i.e. painfully verbose)
-	for (auto i : std::ranges::iota_view(0, VIEW_WIDTH)) {
-		for (auto j : std::ranges::iota_view(0, VIEW_HEIGHT - ACTOR_HEIGHT)) {
-			if ((i < TUNNEL_START_X) || (i > TUNNEL_END_X) || (j < TUNNEL_END_Y)) {
-				iceObjects[i][j] = std::make_shared<IceBlock>(i, j);
-			}
-		}
-	}
-
-	openSquares.reserve(VIEW_WIDTH * (VIEW_HEIGHT - ACTOR_HEIGHT));
-	iceSquares.reserve(VIEW_WIDTH * (VIEW_HEIGHT - ACTOR_HEIGHT));
-	populateAvailableSquares();
-}
-
-std::shared_ptr<IceBlock>& Ice::getBlock(int x, int y) {
-	// includes bounds checking
-	return iceObjects.at(x).at(y);
-}
-
-std::optional<std::pair<int, int>> Ice::getPrevBlock(int x, int y) {
-	return prevSpaces.at(x).at(y);
-}
-
-
-// removes ice in an x_size by y_size block from the given coordinates
-// returns false if no ice was in the area, true otherwise
-bool Ice::destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size) {
-	bool destroyed_ice = false;
-	for (auto i : std::ranges::iota_view(x, x + x_size)) {
-		for (auto j : std::ranges::iota_view(y, y + y_size)) {
-			auto& block = getBlock(i, j);
-			if (block != nullptr) {
-				block.reset();
-				destroyed_ice = true;
-			}
-		}
+	std::shared_ptr<IceBlock>& getBlock(int x, int y) {
+		// includes bounds checking
+		return iceObjects.at(x).at(y);
 	}
 	
-	if (destroyed_ice) {
-		populateAvailableSquares();
-		calculateExitPaths();
-	}
-		
+	bool destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size);
 
-	return destroyed_ice;
-}
+	std::optional<std::pair<unsigned int, unsigned int>> getOpenSquare(unsigned int i);
+	std::optional<std::pair<unsigned int, unsigned int>> getIceSquare(unsigned int i);
 
-// returns a valid iceless point to spawn an object in
-std::optional<std::pair<unsigned int, unsigned int>> Ice::getOpenSquare(unsigned int i) {
-	if (openSquares.empty())
-		return std::nullopt;
-	return openSquares.at(i);
-}
+	size_t getNumOpenSquares() { return openSquares.size(); }
+	size_t getNumIceSquares() { return iceSquares.size(); }
 
-// getOpenSquare, but for valid ice points
-std::optional<std::pair<unsigned int, unsigned int>> Ice::getIceSquare(unsigned int i) {
-	if (iceSquares.empty())
-		return std::nullopt;
-	return iceSquares.at(i);
-}
+private:	
+	// a less disgusting way to write this would be appreciated
+	// using namespace std would just be a stopgap
+	// making the elements unique_ptrs without incurring the compiler's wrath would also be cool
+	std::vector<std::vector<std::shared_ptr<IceBlock>>> iceObjects = std::vector<std::vector<std::shared_ptr<IceBlock>>>(VIEW_WIDTH, std::vector<std::shared_ptr<IceBlock>>(VIEW_HEIGHT, nullptr));
 
-// record which 4x4 squares contain and don't contain ice
-// (useful for spawning objects)
-// it would do us good to move this into a thread at some point
-void Ice::populateAvailableSquares() {
-	
-	openSquares.erase(openSquares.begin(), openSquares.end());
-	iceSquares.erase(iceSquares.begin(), iceSquares.end());
+	std::vector<std::pair<unsigned int, unsigned int>> openSquares;
+	std::vector<std::pair<unsigned int, unsigned int>> iceSquares;
 
-	std::array<int, (VIEW_HEIGHT)> open_vertical_conts;
-	open_vertical_conts.fill(0);
-	std::array<int, (VIEW_HEIGHT)> ice_vertical_conts;
-	ice_vertical_conts.fill(0);
+	void populateAvailableSquares();
+};
 
-	const int j_range = int(iceObjects.size() - ACTOR_HEIGHT);
-	for (auto j : std::ranges::iota_view(0, j_range)) { // ignore upper strip of playfield
-		int open_horizontal_cont = 0;
-		int ice_horizontal_cont = 0;
-		for (auto i : std::ranges::iota_view(0, VIEW_WIDTH)) {
-			if (getBlock(i, j) == nullptr) {
-				open_horizontal_cont++;
-				open_vertical_conts[i]++;
-				ice_horizontal_cont = 0;
-				ice_vertical_conts[i] = 0;
-			}
-			else {
-				open_horizontal_cont = 0;
-				open_vertical_conts[i] = 0;
-				ice_horizontal_cont++;
-				ice_vertical_conts[i]++;
-			}
 
-			if (i >= (ACTOR_HEIGHT - 1) and j >= (ACTOR_HEIGHT - 1)) {
-				auto candidate_coordinate = std::make_pair(i - ACTOR_HEIGHT + 1, j - ACTOR_HEIGHT + 1);
-
-				if (open_horizontal_cont >= ACTOR_HEIGHT
-					and open_vertical_conts[i] >= ACTOR_HEIGHT
-					and open_vertical_conts[i - 1] >= ACTOR_HEIGHT
-					and open_vertical_conts[i - 2] >= ACTOR_HEIGHT
-					and open_vertical_conts[i - 3] >= ACTOR_HEIGHT) {
-					openSquares.push_back(candidate_coordinate);
-				}
-
-				if (ice_horizontal_cont >= ACTOR_HEIGHT
-					and ice_vertical_conts[i] >= ACTOR_HEIGHT
-					and ice_vertical_conts[i - 1] >= ACTOR_HEIGHT
-					and ice_vertical_conts[i - 2] >= ACTOR_HEIGHT
-					and ice_vertical_conts[i - 3] >= ACTOR_HEIGHT) {
-					iceSquares.push_back(candidate_coordinate);
-				}
-			}
-		}
-	} // return of the glorious bracket staircase
-
-	// this works now (I think) and is no longer necessary
-	/*std::cout << "OPEN\n";
-	for (auto& i : openSquares) {
-		std::cout << i.first << ' ' << i.second << '\n';
-	}
-	std::cout << "ICE\n";
-	for (auto i : iceSquares) {
-		std::cout << i.first << ' ' << i.second << '\n';
-	}*/
-}
-
-const int RETURN_POINT_X = VIEW_WIDTH - ACTOR_HEIGHT;
-const int RETURN_POINT_Y = VIEW_HEIGHT - ACTOR_HEIGHT;
-
-void Ice::calculateExitPaths() {
-	int path_point_x = RETURN_POINT_X;
-	int path_point_y = RETURN_POINT_Y;
-
-	// this is effectively a 60x60 (objects will never be further than that)
-	// array of bools
-	std::bitset<(RETURN_POINT_X * (RETURN_POINT_Y + 1) + RETURN_POINT_X + 1)> seen_points(false);
-	std::queue<int> path_points;
-
-	// the real deal will use the actors as stopping points
-	// but this will be useful as a test case
-	auto& player = w.getPlayer();
-	// hacky way to condense two points into a single unique value
-	int point_hash = path_point_x + (path_point_y * (RETURN_POINT_Y + 1));
-	seen_points[point_hash] = true;
-	path_points.push(point_hash);
-
-	while (!path_points.empty()) {
-
-		auto current_point = path_points.front();
-		path_points.pop();
-		path_point_x = current_point % (RETURN_POINT_Y + 1);
-		path_point_y = current_point / (RETURN_POINT_Y + 1);
-
-		//std::cout << current_point << ' ' << path_point_x << ' ' << path_point_y << '\n';
-
-		// find next points
-		std::array<std::pair<int, int>, 4> neighbors = {
-			std::make_pair(path_point_x + 1, path_point_y),
-			std::make_pair(path_point_x - 1, path_point_y),
-			std::make_pair(path_point_x, path_point_y + 1),
-			std::make_pair(path_point_x, path_point_y - 1)
-		};
-
-		for (auto& point : neighbors) {
-			// check if point is within bounds
-			//std::cout << "Test " << point.first << ' ' << point.second << '\n';
-			if (point.first >= 0 and point.first <= RETURN_POINT_X
-				and point.second >= 0 and point.second <= RETURN_POINT_Y) {
-				// check if point is an open space
-				if (!w.isIntersectingBoulder(point.first, point.second)
-					and !w.isIntersectingIce(point.first, point.second)) {
-					// point cannot have been seen already
-					int prospective_point_hash = point.first + (point.second * (RETURN_POINT_Y + 1));
-					if (!seen_points[prospective_point_hash]) {
-						seen_points[prospective_point_hash] = true;
-						path_points.push(prospective_point_hash);
-						prevSpaces[point.first][point.second] = std::make_pair(path_point_x, path_point_y);
-						//std::cout << point.first << ' ' << point.second << ' ' << prospective_point_hash << '\n';
-					}
-				}
-			}
-		}
-	}
-} // extremely glorious bracket staircase
-
-double Squirt::getDistanceToPlayer() { return 0.0; }
-double Squirt::getDistanceToActor(std::unique_ptr<Actor>& object) {return 0.0; }
-
-bool Squirt::checkRadius() { return true; }
-void Squirt::affectPlayerInRadius(){}
-void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object){}
+#endif // ACTOR_H_
