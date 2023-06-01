@@ -21,7 +21,7 @@ int StudentWorld::init() {
 	
 
 	StudentWorld::player = std::make_unique<IceMan>(getWorld(), 30, 60);
-	ice = std::make_unique<Ice>();
+	ice = std::make_unique<Ice>(getWorld());
 
 	// spawn ice goodies
 	int num_boulders = std::min(getLevel() / 2 + 2, unsigned int(9));
