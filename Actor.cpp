@@ -53,7 +53,7 @@ void IceMan::doSomething() {
 				break;
 			case KEY_PRESS_SPACE:
 				//subtract water count
-				if (getWater() > 0) {
+				if (water > 0) {
 					useWater();
 					//water sound
 					w.playSound(SOUND_PLAYER_SQUIRT);
@@ -279,8 +279,19 @@ void Squirt::doSomething() {
 				currentPosition.second--;
 				break;
 			}
-			moveTo(currentPosition.first, currentPosition.second);
-			lifespan--;
+
+	
+			if (w.getIce()->getBlock(currentPosition.first, currentPosition.second)==nullptr) {
+				//check if it'll hit a protestor
+				//decrement protestors hit points
+				//else move
+				moveTo(currentPosition.first, currentPosition.second);
+				lifespan--;
+			}
+			else {
+				lifespan = 0;
+				dead = true;
+			}
 		}
 	
 	else { dead = true; }
