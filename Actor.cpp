@@ -136,26 +136,6 @@ bool Actor::willCollide(std::pair<int, int> new_pos) {
 	return false;
 }
 
-Protester::Protester(StudentWorld& world, int startX, int startY, Direction dir, double size, unsigned int depth)
-	: Actor(world, PROTESTER_MAX_HEALTH, IID_PLAYER, startX, startY, dir, size, depth) {
-	updateRestTicks();
-}
-
-void Protester::doSomething() {
-	if (!isDead()) {
-		if (!isResting()) {
-			if (leavingOilField) {
-				moveTowardsOilField();
-			}
-			else if (!attemptShout()) {
-				if (!attemptMoveToIceman()) {
-					pickNewDirection();
-				}
-			}
-		}
-	}
-}
-
 const unsigned int WATER_PICKUP_AMOUNT = 5;
 
 bool Prop::checkRadius() {
