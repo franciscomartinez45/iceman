@@ -130,7 +130,7 @@ class Protester : public Actor {
 public:
 	Protester(StudentWorld& world, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0);
 
-	void doSomething() { }
+	void doSomething();
 	void beAnnoyed(int annoy_value) { } // Francisco
 	virtual void beBribed() { }         // Aaron
 
