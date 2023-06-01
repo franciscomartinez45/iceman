@@ -27,7 +27,6 @@ int StudentWorld::init() {
 	int num_boulders = std::min(getLevel() / 2 + 2, unsigned int(9));
 	int num_nuggs = std::max(5 - getLevel(), unsigned int(2));
 	int num_barrels = std::min(getLevel() + 2, unsigned int(21));
-	int num_protestors = std::min(getLevel()+2 * 1.5,unsigned int (15));//
 	
 		
 	for (auto i : std::ranges::iota_view(0, num_boulders))
@@ -258,5 +257,18 @@ void StudentWorld::revealObjects() {
 } // glorious bracket staircase
 
 void StudentWorld::spawnSquirt() {
-	objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
+	auto dir = player->getDirection();
+	switch (dir) {
+	case GraphObject::left:
+	case GraphObject::down:
+		objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
+		break;
+	case GraphObject::right:
+		objects.push_back(make_unique<Squirt>(getWorld(), player->getX()+3, player->getY(), player->getDirection(), 1.0, 1.0));
+		break;
+	case GraphObject::up:
+		objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY()+3, player->getDirection(), 1.0, 1.0));
+		break;
+	}
+	
 }
