@@ -7,6 +7,8 @@
 #include "GameWorld.h"
 #include <algorithm>
 #include <optional>
+#include <array>
+#include <variant>
 
 const int ACTOR_HEIGHT = 4;
 const int ACTOR_WIDTH_LIMIT = VIEW_WIDTH - 4;
@@ -29,6 +31,7 @@ public:
 	bool isDead() { return dead; }
 	bool isActor() { return actorStatus; }
 	virtual bool isBoulder() { return false; }
+	void wasKilledByBoulder() { killedByBoulder = true; }
 
 	virtual void doSomething() = 0;
 	virtual void beAnnoyed(int annoy_value) = 0;
@@ -41,6 +44,8 @@ protected:
 
 	const bool actorStatus;
 
+	bool killedByBoulder = false;
+
 	StudentWorld& w; // passed in during init()
 };
 
@@ -48,6 +53,18 @@ const int INSTAKILL_DAMAGE = 100;
 
 class Actor : public Object {
 public:
+	Actor(StudentWorld& world, int m_health, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
+		: Object(world, true, imageID, startX, startY, dir, size, depth), max_health(m_health){}
+
+	virtual void beAnnoyed(int annoy_value) =0;
+	int getHealth() { return health; }
+	virtual void beBribed() { }
+
+protected:
+	bool willCollide(std::pair<int, int> new_pos);
+
+	int max_health;
+	int health = max_health;
 	Actor(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
 		: Object(world, true, imageID, startX, startY, dir, size, depth){}
 
@@ -63,12 +80,11 @@ const int CAP_TWO_DIGITS = 99;
 class IceMan : public Actor {
 public:
 	IceMan(StudentWorld& world, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Actor(world, IID_PLAYER, startX, startY, dir, size, depth)  {
+		: Actor(world, ICEMAN_MAX_HEALTH, IID_PLAYER, startX, startY, dir, size, depth)  {
 	}
 	void doSomething();
 	void beAnnoyed(int annoy_value);
 
-	int getHealth() { return health; }
 	int getWater() { return water; }
 	int getSonar() { return sonar; }
 	int getNuggs() { return nuggs; }
@@ -102,14 +118,40 @@ public:
 		water--;
 	}
 private:
-	bool willCollide(std::pair<int, int> new_pos);
+	// TESTING FUNCTION - NOT INTENDED FOR REAL GAMEPLAY
+	void getReturnPath();	
 
-	int health = ICEMAN_MAX_HEALTH;
-	int max_health = ICEMAN_MAX_HEALTH;
-	int water = ICEMAN_DEFAULT_WATER;
+  int water = ICEMAN_DEFAULT_WATER;
 	int sonar = 999;//ICEMAN_DEFAULT_SONAR;
 	int nuggs = 0;
 	int numBarrels = 0;
+};
+
+const int PROTESTER_MAX_HEALTH = 5;
+class Protester : public Actor {
+public:
+	Protester(StudentWorld& world, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0);
+
+	void doSomething();
+	void beAnnoyed(int annoy_value); // Francisco
+	virtual void beBribed();         // Aaron
+
+protected:
+	void moveTowardsOilField(); // Francisco
+	bool attemptShout();        // Francisco
+	bool attemptMoveToIceman(); // Aaron
+	void pickNewDirection();    // Aaron
+
+	bool isResting();            // Aaron
+	bool straightLineToIceman(); // Francisco
+	bool isFacingIceman();       // Aaron
+	void updateRestTicks();      // Francisco
+
+	int waitTicks;
+	bool leavingOilField;
+
+	int ticksSinceLastPerpendicularTurn;
+
 };
 
 const int ICE_DEPTH = 3;
@@ -296,6 +338,9 @@ public:
 	}
 
 	void doSomething() { }
+
+	// stores whatever IceBlock is closest to a Protester's return point
+	std::optional<std::pair<int, int>> previous = std::nullopt;
 };
 
 const int TUNNEL_START_X = 30;
@@ -306,13 +351,11 @@ const unsigned int DEFAULT_ICE_DESTROY_RANGE = 4;
 
 class Ice {
 public:
-	Ice();
+	Ice(StudentWorld& world);
 	// smart pointers mean that we don't have to delete anything ourselves
 	
-	std::shared_ptr<IceBlock>& getBlock(int x, int y) {
-		// includes bounds checking
-		return iceObjects.at(x).at(y);
-	}
+	std::shared_ptr<IceBlock>& getBlock(int x, int y);
+	std::optional<std::pair<int, int>> getPrevBlock(int x, int y);
 	
 	bool destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size);
 
@@ -322,16 +365,21 @@ public:
 	size_t getNumOpenSquares() { return openSquares.size(); }
 	size_t getNumIceSquares() { return iceSquares.size(); }
 
-private:	
+private:
 	// a less disgusting way to write this would be appreciated
 	// using namespace std would just be a stopgap
 	// making the elements unique_ptrs without incurring the compiler's wrath would also be cool
-	std::vector<std::vector<std::shared_ptr<IceBlock>>> iceObjects = std::vector<std::vector<std::shared_ptr<IceBlock>>>(VIEW_WIDTH, std::vector<std::shared_ptr<IceBlock>>(VIEW_HEIGHT, nullptr));
+	std::array<std::array<std::shared_ptr<IceBlock>, VIEW_HEIGHT>, VIEW_WIDTH> iceObjects;
+	std::array<std::array<std::optional<std::pair<int, int>>, VIEW_HEIGHT>, VIEW_WIDTH> prevSpaces;
 
 	std::vector<std::pair<unsigned int, unsigned int>> openSquares;
 	std::vector<std::pair<unsigned int, unsigned int>> iceSquares;
 
 	void populateAvailableSquares();
+
+	void calculateExitPaths();
+
+	StudentWorld& w;
 };
 
 
