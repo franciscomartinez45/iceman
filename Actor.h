@@ -67,8 +67,6 @@ protected:
 	int health = max_health;
 	Actor(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
 		: Object(world, true, imageID, startX, startY, dir, size, depth){}
-
-	virtual void beAnnoyed(int annoy_value) =0;
 };
 
 const int ICEMAN_MAX_HEALTH = 10;
@@ -119,7 +117,7 @@ public:
 	}
 private:
 	// TESTING FUNCTION - NOT INTENDED FOR REAL GAMEPLAY
-	void getReturnPath();	
+	//void getReturnPath();	
 
   int water = ICEMAN_DEFAULT_WATER;
 	int sonar = 999;//ICEMAN_DEFAULT_SONAR;
@@ -132,20 +130,20 @@ class Protester : public Actor {
 public:
 	Protester(StudentWorld& world, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0);
 
-	void doSomething();
-	void beAnnoyed(int annoy_value); // Francisco
-	virtual void beBribed();         // Aaron
+	void doSomething() { }
+	void beAnnoyed(int annoy_value) { } // Francisco
+	virtual void beBribed() { }         // Aaron
 
 protected:
-	void moveTowardsOilField(); // Francisco
-	bool attemptShout();        // Francisco
-	bool attemptMoveToIceman(); // Aaron
-	void pickNewDirection();    // Aaron
+	void moveTowardsOilField() {} // Francisco
+	bool attemptShout() { return true; }        // Francisco
+	bool attemptMoveToIceman() { return true; } // Aaron
+	void pickNewDirection() {};    // Aaron
 
-	bool isResting();            // Aaron
-	bool straightLineToIceman(); // Francisco
-	bool isFacingIceman();       // Aaron
-	void updateRestTicks();      // Francisco
+	bool isResting() { return true; }            // Aaron
+	bool straightLineToIceman() { return true; } // Francisco
+	bool isFacingIceman() { return true; }     // Aaron
+	void updateRestTicks() {}      // Francisco
 
 	int waitTicks;
 	bool leavingOilField;
