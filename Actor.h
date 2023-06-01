@@ -54,9 +54,9 @@ const int INSTAKILL_DAMAGE = 100;
 class Actor : public Object {
 public:
 	Actor(StudentWorld& world, int m_health, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Object(world, true, imageID, startX, startY, dir, size, depth), max_health(m_health) {}
+		: Object(world, true, imageID, startX, startY, dir, size, depth), max_health(m_health){}
 
-	virtual void beAnnoyed(int annoy_value) = 0;
+	virtual void beAnnoyed(int annoy_value) =0;
 	int getHealth() { return health; }
 	virtual void beBribed() { }
 
@@ -66,7 +66,7 @@ protected:
 	int max_health;
 	int health = max_health;
 	Actor(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Object(world, true, imageID, startX, startY, dir, size, depth) {}
+		: Object(world, true, imageID, startX, startY, dir, size, depth){}
 };
 
 const int ICEMAN_MAX_HEALTH = 10;
@@ -78,7 +78,7 @@ const int CAP_TWO_DIGITS = 99;
 class IceMan : public Actor {
 public:
 	IceMan(StudentWorld& world, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Actor(world, ICEMAN_MAX_HEALTH, IID_PLAYER, startX, startY, dir, size, depth) {
+		: Actor(world, IID_PLAYER, startX, startY, dir, size, depth)  {
 	}
 	void doSomething();
 	void beAnnoyed(int annoy_value);
@@ -119,37 +119,12 @@ private:
 	// TESTING FUNCTION - NOT INTENDED FOR REAL GAMEPLAY
 	//void getReturnPath();	
 
+	int health = ICEMAN_MAX_HEALTH;
+	int max_health = ICEMAN_MAX_HEALTH;
 	int water = ICEMAN_DEFAULT_WATER;
 	int sonar = 999;//ICEMAN_DEFAULT_SONAR;
 	int nuggs = 0;
 	int numBarrels = 0;
-};
-
-const int PROTESTER_MAX_HEALTH = 5;
-class Protester : public Actor {
-public:
-	Protester(StudentWorld& world, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0);
-
-	void doSomething() { }
-	void beAnnoyed(int annoy_value) { } // Francisco
-	virtual void beBribed() { }         // Aaron
-
-protected:
-	void moveTowardsOilField() {} // Francisco
-	bool attemptShout() { return true; }        // Francisco
-	bool attemptMoveToIceman() { return true; } // Aaron
-	void pickNewDirection() {};    // Aaron
-
-	bool isResting() { return true; }            // Aaron
-	bool straightLineToIceman() { return true; } // Francisco
-	bool isFacingIceman() { return true; }     // Aaron
-	void updateRestTicks() {}      // Francisco
-
-	int waitTicks;
-	bool leavingOilField;
-
-	int ticksSinceLastPerpendicularTurn;
-
 };
 
 const int ICE_DEPTH = 3;
@@ -351,10 +326,12 @@ class Ice {
 public:
 	Ice(StudentWorld& world);
 	// smart pointers mean that we don't have to delete anything ourselves
-
-	std::shared_ptr<IceBlock>& getBlock(int x, int y);
-	std::optional<std::pair<int, int>> getPrevBlock(int x, int y);
-
+	
+	std::shared_ptr<IceBlock>& getBlock(int x, int y) {
+		// includes bounds checking
+		return iceObjects.at(x).at(y);
+	}
+	
 	bool destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size);
 
 	std::optional<std::pair<unsigned int, unsigned int>> getOpenSquare(unsigned int i);
