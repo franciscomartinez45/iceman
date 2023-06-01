@@ -136,7 +136,7 @@ bool Actor::willCollide(std::pair<int, int> new_pos) {
 	return false;
 }
 
-Protester::Protester(StudentWorld& world, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0)
+Protester::Protester(StudentWorld& world, int startX, int startY, Direction dir, double size, unsigned int depth)
 	: Actor(world, PROTESTER_MAX_HEALTH, IID_PLAYER, startX, startY, dir, size, depth) {
 	updateRestTicks();
 }
