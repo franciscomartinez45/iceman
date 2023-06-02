@@ -2,13 +2,12 @@
 #define ACTOR_H_
 
 #include "GraphObject.h"
+#include "GameWorld.h"
 #include <vector>
 #include <ranges> // requires C++20
-#include "GameWorld.h"
 #include <algorithm>
 #include <optional>
 #include <array>
-#include <variant>
 
 const int ACTOR_HEIGHT = 4;
 const int ACTOR_WIDTH_LIMIT = VIEW_WIDTH - 4;
@@ -19,7 +18,7 @@ class StudentWorld; // Gordian knotting the circular dependency
 class Object : public GraphObject {
 public:
 	Object(StudentWorld& world, bool actor, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: GraphObject(imageID, startX, startY, dir, size, depth), w(world), actorStatus(actor) {
+	: GraphObject(imageID, startX, startY, dir, size, depth), w(world), actorStatus(actor) {
 		setVisible(true);
 	}
 
@@ -32,6 +31,7 @@ public:
 	bool isActor() { return actorStatus; }
 	virtual bool isBoulder() { return false; }
 	void wasKilledByBoulder() { killedByBoulder = true; }
+	virtual void beBribed() {}
 
 	virtual void doSomething() = 0;
 	virtual void beAnnoyed(int annoy_value) = 0;
@@ -54,19 +54,19 @@ const int INSTAKILL_DAMAGE = 100;
 class Actor : public Object {
 public:
 	Actor(StudentWorld& world, int m_health, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Object(world, true, imageID, startX, startY, dir, size, depth), max_health(m_health) {}
+		: Object(world, true, imageID, startX, startY, dir, size, depth), max_health(m_health){}
 
-	virtual void beAnnoyed(int annoy_value) = 0;
+	virtual void beAnnoyed(int annoy_value) =0;
 	int getHealth() { return health; }
 	virtual void beBribed() { }
 
 protected:
-	bool willCollide(std::pair<int, int> new_pos);
+	virtual bool willCollide(std::pair<int, int> new_pos);
+	bool moveInDirection(Direction dir);
+	std::pair<int, int> getPointInDirection(Direction dir);
 
 	int max_health;
 	int health = max_health;
-	Actor(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Object(world, true, imageID, startX, startY, dir, size, depth) {}
 };
 
 const int ICEMAN_MAX_HEALTH = 10;
@@ -78,7 +78,7 @@ const int CAP_TWO_DIGITS = 99;
 class IceMan : public Actor {
 public:
 	IceMan(StudentWorld& world, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Actor(world, ICEMAN_MAX_HEALTH, IID_PLAYER, startX, startY, dir, size, depth) {
+		: Actor(world, ICEMAN_MAX_HEALTH, IID_PLAYER, startX, startY, dir, size, depth)  {
 	}
 	void doSomething();
 	void beAnnoyed(int annoy_value);
@@ -89,8 +89,8 @@ public:
 	int getOil() { return numBarrels; }
 
 
-	void addWater(unsigned int add) {
-		water += add;
+	void addWater(unsigned int add) { 
+		water += add; 
 		if (water > CAP_TWO_DIGITS)
 			water = CAP_TWO_DIGITS;
 	}
@@ -120,35 +120,43 @@ private:
 	//void getReturnPath();	
 
 	int water = ICEMAN_DEFAULT_WATER;
-	int sonar = 999;//ICEMAN_DEFAULT_SONAR;
+	int sonar = ICEMAN_DEFAULT_SONAR;
 	int nuggs = 0;
 	int numBarrels = 0;
 };
 
 const int PROTESTER_MAX_HEALTH = 5;
+const int PROTESTER_PERPENDICULAR_THRESHOLD = 200;
 class Protester : public Actor {
 public:
-	Protester(StudentWorld& world, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0);
+	Protester(StudentWorld& world, int level, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0)
+		: Actor(world, PROTESTER_MAX_HEALTH, IID_PROTESTER, startX, startY, dir, size, depth), waitTicks(std::max(0, 3 - (level / 4))) {
+		updateNumSquares();
+	}
 
-	void doSomething() { }
+	void doSomething();
 	void beAnnoyed(int annoy_value) { } // Francisco
-	virtual void beBribed() { }         // Aaron
+	virtual void beBribed();
 
 protected:
-	void moveTowardsOilField() {} // Francisco
-	bool attemptShout() { return true; }        // Francisco
-	bool attemptMoveToIceman() { return true; } // Aaron
-	void pickNewDirection() {};    // Aaron
+	bool willCollide(std::pair<int, int> new_pos);
 
-	bool isResting() { return true; }            // Aaron
-	bool straightLineToIceman() { return true; } // Francisco
-	bool isFacingIceman() { return true; }     // Aaron
-	void updateRestTicks() {}      // Francisco
+	void moveTowardsOilField() {} // Francisco
+	bool attemptShout() { return false; }        // Francisco
+	bool attemptMoveToIceman();
+	void pickNewDirection();
+
+	bool isResting();
+	bool isFacingIceman() { return true; }     // Francisco
+	bool straightLineToIceman();
+	void updateNumSquares();
 
 	int waitTicks;
-	bool leavingOilField;
+	int currentWaitTicks = waitTicks;
+	bool leavingOilField = false;
 
-	int ticksSinceLastPerpendicularTurn;
+	int numSquaresToMoveInCurrentDirection = 0;
+	int ticksSinceLastPerpendicularTurn = PROTESTER_PERPENDICULAR_THRESHOLD + 1;
 
 };
 
@@ -168,7 +176,7 @@ public:
 protected:
 
 	virtual bool checkRadius();
-	virtual void affectPlayerInRadius() { };
+	virtual void affectPlayerInRadius() { } ;
 	virtual void affectObjectInRadius(std::unique_ptr<Object>& object) { };
 	virtual bool isBoulder() { return false; }
 
@@ -185,8 +193,9 @@ public:
 
 protected:
 	void affectPlayerInRadius();
-	virtual void updatePlayerInventory() = 0;
-
+	virtual void updatePlayerInventory()=0;
+	virtual void affectObjectInRadius(std::unique_ptr<Object>& object) { };
+	
 	const unsigned int obtainSoundEffect;
 	int scoreValue;
 };
@@ -222,8 +231,8 @@ public:
 protected:
 	bool checkRadius();
 
-	virtual void updatePlayerInventory() = 0;
-	virtual void affectObjectInRadius(std::unique_ptr<Actor>& object) {}
+	virtual void updatePlayerInventory()=0;
+	virtual void affectObjectInRadius(std::unique_ptr<Object>& object) { };
 };
 const unsigned int BARREL_PICKUP_SCORE = 1'000;
 class Barrel : public HiddenGoodie {
@@ -241,7 +250,7 @@ private:
 const unsigned int SONAR_PICKUP_SCORE = 75;
 class Sonar : public HiddenGoodie {
 public:
-	Sonar(StudentWorld& world, int level, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
+	Sonar(StudentWorld& world,int level, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = GOODIE_DEPTH)
 		: HiddenGoodie(world, SONAR_PICKUP_SCORE, SOUND_GOT_GOODIE, IID_SONAR, startX, startY, dir, size, depth) {
 		lifespan = std::max(100, 300 - (10 * level));
 	}
@@ -252,6 +261,7 @@ private:
 	int lifespan = 0;
 
 };
+
 const unsigned int NUGG_PICKUP_SCORE = 10;
 const int NUGG_LIFESPAN = 100;
 class Nugg : public HiddenGoodie {
@@ -267,21 +277,23 @@ public:
 
 private:
 	void updatePlayerInventory();
+	virtual void affectObjectInRadius(std::unique_ptr<Object>& object);
 
 	int lifespan = NUGG_LIFESPAN;
 };
+
 const int SQUIRT_TRAVEL_DISTANCE = 4;
 class Squirt : public Prop {
 public:
 	Squirt(StudentWorld& world, int startX, int startY, Direction dir, double size = 1.0, unsigned int depth = 1.0)
-		: Prop(world, true, true, ITEM_PICKUP_DISTANCE, IID_WATER_SPURT, startX, startY, dir, size, depth) {
+		: Prop(world,true,true,ITEM_PICKUP_DISTANCE, IID_WATER_SPURT,startX,startY,dir,size,depth){
 		affectPlayer = false;
 		affectActors = true;
 		setVisible(true);
 		lifespan = SQUIRT_TRAVEL_DISTANCE;
 		currentPosition.first = startX;
 		currentPosition.second = startY;
-
+		
 	}
 	void doSomething();
 	double getDistanceToPlayer();
@@ -351,10 +363,10 @@ class Ice {
 public:
 	Ice(StudentWorld& world);
 	// smart pointers mean that we don't have to delete anything ourselves
-
+	
 	std::shared_ptr<IceBlock>& getBlock(int x, int y);
 	std::optional<std::pair<int, int>> getPrevBlock(int x, int y);
-
+	
 	bool destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size);
 
 	std::optional<std::pair<unsigned int, unsigned int>> getOpenSquare(unsigned int i);
