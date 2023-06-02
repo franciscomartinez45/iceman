@@ -2,6 +2,8 @@
 #include "StudentWorld.h"
 #include <cmath>
 #include <array>
+#include <random>
+#include <bitset>
 
 // distance formula time
 float Object::getDistanceTo(Object& other) {
@@ -27,6 +29,52 @@ double Object::getDistanceToPlayer() {
 
 std::optional<double> Object::getDistanceToActor(std::unique_ptr<Object>& actor) {
 	return getDistanceTo(*(actor.get()));
+}
+
+bool Actor::willCollide(std::pair<int, int> new_pos) {
+	if (new_pos.first < 0 or new_pos.first > ACTOR_WIDTH_LIMIT or new_pos.second < 0 or new_pos.second > ACTOR_HEIGHT_LIMIT)
+		return true;
+
+	for (auto& object : w.getObjects()) {
+		if (object->isBoulder() and object->intersects(new_pos.first, new_pos.second))
+			return true;
+	}
+
+	return false;
+}
+
+std::pair<int, int> Actor::getPointInDirection(Direction dir) {
+	auto new_pos = std::make_pair<int>(getX(), getY());
+	switch (dir) {
+	case up:
+		new_pos.second++;
+		break;
+	case down:
+		new_pos.second--;
+		break;
+	case left:
+		new_pos.first--;
+		break;
+	case right:
+		new_pos.first++;
+		break;
+	}
+	return new_pos;
+}
+
+bool Actor::moveInDirection(Direction dir) {
+	auto new_pos = getPointInDirection(dir);
+	auto prev_pos = std::make_pair<int>(getX(), getY());;
+
+	// bounds checking
+	bool moved = true;
+	if (willCollide(new_pos)) {
+		new_pos = prev_pos;
+		moved = false;
+	}
+		
+	moveTo(new_pos.first, new_pos.second);
+	return moved;
 }
 
 void IceMan::doSomething() {
@@ -87,28 +135,7 @@ void IceMan::doSomething() {
 					setDirection(new_dir);
 
 				else {
-					auto new_pos = std::make_pair<int>(getX(), getY());
-					auto prev_pos = new_pos;
-
-					switch (new_dir) {
-					case up:
-						new_pos.second++;
-						break;
-					case down:
-						new_pos.second--;
-						break;
-					case left:
-						new_pos.first--;
-						break;
-					case right:
-						new_pos.first++;
-						break;
-					}
-
-					// bounds checking
-					if (willCollide(new_pos))
-						new_pos = prev_pos;
-					moveTo(new_pos.first, new_pos.second);
+					moveInDirection(new_dir);
 				}
 			}
 		}
@@ -124,23 +151,6 @@ void IceMan::beAnnoyed(int annoy_value) {
 	}
 }
 
-bool Actor::willCollide(std::pair<int, int> new_pos) {
-	if (new_pos.first < 0 or new_pos.first > ACTOR_WIDTH_LIMIT or new_pos.second < 0 or new_pos.second > ACTOR_WIDTH_LIMIT)
-		return true;
-	
-	for (auto& object : w.getObjects()) {
-		if (object->isBoulder() and object->intersects(new_pos.first, new_pos.second))
-			return true;
-	}
-
-	return false;
-}
-
-Protester::Protester(StudentWorld& world, int startX, int startY, Direction dir, double size, unsigned int depth)
-	: Actor(world, PROTESTER_MAX_HEALTH, IID_PROTESTER, startX, startY, dir, size, depth) {
-	updateRestTicks();
-}
-
 void Protester::doSomething() {
 	if (!isDead()) {
 		if (!isResting()) {
@@ -152,8 +162,168 @@ void Protester::doSomething() {
 					pickNewDirection();
 				}
 			}
+			ticksSinceLastPerpendicularTurn++;
 		}
 	}
+}
+
+const int PROTESTER_BRIBE_AMOUNT = 25;
+void Protester::beBribed() {
+	w.playSound(SOUND_PROTESTER_FOUND_GOLD);
+	w.increaseScore(PROTESTER_BRIBE_AMOUNT);
+}
+
+bool Protester::attemptMoveToIceman() {
+	if (straightLineToIceman()) {
+		Direction new_dir = none;
+		if (getX() == w.getPlayer()->getX()) {
+			if (getY() < w.getPlayer()->getY())
+				new_dir = up;
+			else
+				new_dir = down;
+		}
+		if (getY() == w.getPlayer()->getY()) {
+			if (getX() < w.getPlayer()->getX())
+				new_dir = right;
+			else
+				new_dir = left;
+		}
+		setDirection(new_dir);
+		moveInDirection(new_dir);
+
+		return true;
+	}
+	return false;
+}
+
+const int NUM_DIRECTIONS = 4;
+void Protester::pickNewDirection() {
+	std::bitset<NUM_DIRECTIONS> viable_directions(false);
+	for (auto i : std::ranges::iota_view(0, NUM_DIRECTIONS)) {
+		viable_directions.set(i, !willCollide(getPointInDirection(Direction(i + 1))));
+	}
+
+	if (numSquaresToMoveInCurrentDirection <= 0) {
+		auto new_dir = std::uniform_int_distribution<int>(0, viable_directions.count() - 1)(w.getGenerator());
+		while (!viable_directions[new_dir]) {
+			new_dir++;
+		}
+
+		setDirection(Direction(new_dir + 1));
+		updateNumSquares();
+	}
+
+	if (ticksSinceLastPerpendicularTurn >= PROTESTER_PERPENDICULAR_THRESHOLD) {
+		// pontificate if a perpendicular path is possible
+		auto perpendicular_options = std::make_pair<Direction, Direction>(none, none);
+		switch (getDirection()) {
+		case up:
+		case down:
+			if (viable_directions[left - 1])
+				perpendicular_options.first = left;
+			if (viable_directions[right - 1])
+				perpendicular_options.second = right;
+			break;
+		case left:
+		case right:
+			if (viable_directions[up - 1])
+				perpendicular_options.first = up;
+			if (viable_directions[down - 1])
+				perpendicular_options.second = down;
+			break;
+		}
+
+		if (perpendicular_options.first != none or perpendicular_options.second != none) {
+			if (perpendicular_options.first == none)
+				setDirection(perpendicular_options.second);
+			else if (perpendicular_options.second == none)
+				setDirection(perpendicular_options.first);
+			else {
+				auto use_first = std::uniform_int_distribution<int>(0, 1)(w.getGenerator());
+				setDirection((use_first == 0) ? perpendicular_options.first : perpendicular_options.second);
+			}
+			updateNumSquares();
+			ticksSinceLastPerpendicularTurn = 0;
+		}
+	}
+
+	if (!moveInDirection(getDirection())) {
+		numSquaresToMoveInCurrentDirection = 0;
+	}
+
+	numSquaresToMoveInCurrentDirection--;
+}
+
+bool Protester::willCollide(std::pair<int, int> new_pos) {
+	if (!Actor::willCollide(new_pos)) {
+		for (auto& object : w.getObjects()) {
+			if (object->isBoulder() and object->getDistanceTo(*this) <= ITEM_PICKUP_DISTANCE) {
+				return true;
+			}
+		}
+
+		for (auto i : std::ranges::iota_view(new_pos.first, new_pos.first + ACTOR_HEIGHT)) {
+			for (auto j : std::ranges::iota_view(new_pos.second, new_pos.second + ACTOR_HEIGHT)) {
+				if (w.getIce()->getBlock(i, j) != nullptr) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	return true;
+}
+
+bool Protester::isResting() {
+	if (currentWaitTicks <= 0) {
+		currentWaitTicks = waitTicks;
+		return false;
+	}
+	else {
+		currentWaitTicks--;
+		return true;
+	}
+}
+
+const double ANNOY_DISTANCE = 4.0;
+bool Protester::straightLineToIceman() {
+	if (getDistanceToPlayer() < ANNOY_DISTANCE) {
+		return false;
+	}
+	if (getX() == w.getPlayer()->getX()) {
+		auto y_min = std::min(getY(), w.getPlayer()->getY());
+		auto y_max = std::max(getY(), w.getPlayer()->getY());
+
+		std::pair<int, int> check_coords = std::make_pair(getX(), y_min);
+
+		for (auto i : std::ranges::iota_view(y_min, y_max + 1)) {
+			check_coords.second = i;
+			if (willCollide(check_coords))
+				return false;
+		}
+		return true;
+	}
+	if (getY() == w.getPlayer()->getY()) {
+		auto x_min = std::min(getX(), w.getPlayer()->getX());
+		auto x_max = std::max(getX(), w.getPlayer()->getX());
+
+		std::pair<int, int> check_coords = std::make_pair(x_min, getY());
+
+		for (auto i : std::ranges::iota_view(x_min, x_max + 1)) {
+			check_coords.first = i;
+			if (willCollide(check_coords))
+				return false;
+		}
+		return true;
+	}
+	return false;
+}
+
+const int MIN_NUM_SQUARES = 8;
+const int MAX_NUM_SQUARES = 60;
+void Protester::updateNumSquares() {
+	numSquaresToMoveInCurrentDirection = std::uniform_int_distribution<int>(MIN_NUM_SQUARES, MAX_NUM_SQUARES)(w.getGenerator());
 }
 
 const unsigned int WATER_PICKUP_AMOUNT = 5;
@@ -243,6 +413,12 @@ void Nugg::doSomething() {
 		}
 	}
 }
+
+void Nugg::affectObjectInRadius(std::unique_ptr<Object>& object) {
+	object->beBribed();
+	dead = true;
+}
+
 void Barrel::doSomething() {
 	if (!dead) {
 		checkRadius();
