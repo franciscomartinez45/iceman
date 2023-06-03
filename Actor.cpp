@@ -154,17 +154,18 @@ void IceMan::beAnnoyed(int annoy_value) {
 void Protester::doSomething() {
 	if (!isDead()) {
 		if (!isResting()) {
-			if (isFacingIceman()) {
-				moveInDirection(getDirection());
+			moveTowardsOilField();
+			/*	moveInDirection(getDirection());
 			}
 			else if (!attemptMoveToIceman()) {
 				pickNewDirection();
 			}
 			ticksSinceLastPerpendicularTurn++;
-			
+
 		}
-	}		
-	
+	}		*/
+		}
+	}
 }
 
 void Protester::beAnnoyed(int annoy_value)
@@ -264,12 +265,18 @@ void Protester::pickNewDirection() {
 	numSquaresToMoveInCurrentDirection--;
 }
 
+void Protester::moveToCenter() {
+	moveTo(getX() - 1, getY());
+	moveTicks--;
+}
 
-void Protester::moveTowardsOilField()
+void Protester::moveTowardsOilField() //moves to center of field
 
-{ //check if getting blocked by ice
-	//check down,left,right, up in that order
+{ //go from 60,60 to 30,60
 
+	if (moveTicks > 0) {
+		moveToCenter();
+	}
 
 
 
@@ -325,10 +332,9 @@ bool Protester::isFacingIceman() {
 	if (player.first == getX()) { // same row
 		if (player.second < getY()) {//protester is to the right of iceman
 			dir = down; //
-			//check if straightline to iceman
+			
 		}
 		else if (player.second >= getY()) { //protester is to the left or at the position of iceman
-			//check if straightline to iceman 
 			dir = up;
 		}
 	}
