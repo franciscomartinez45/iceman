@@ -284,7 +284,7 @@ void Protester::moveTowardsOilField() //moves to center of field
 
 const int SHOUT_COOLOFF_LENGTH = 15;
 bool Protester::attemptShout() {
-	if (getDistanceToPlayer() <= 4) {
+	if (getDistanceToPlayer() <= 4 and isFacingIceman()) {
 		if (shoutCooloff <= 0) {
 			w.playSound(SOUND_PROTESTER_YELL);
 			w.getPlayer()->beAnnoyed(2);
@@ -298,6 +298,7 @@ bool Protester::attemptShout() {
 	else
 		return false; 
 }
+
 bool Protester::willCollide(std::pair<int, int> new_pos) {
 	if (!Actor::willCollide(new_pos)) {
 		for (auto& object : w.getObjects()) {
