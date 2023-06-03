@@ -47,6 +47,11 @@ public:
 	std::list<std::unique_ptr<Object>>& getObjects() {
 		return objects;
 	}
+
+	auto& getGenerator() {
+		return generator;
+	}
+
 	void spawnSquirt();
 	void spawnPlayerNugg();
 	void revealObjects();
