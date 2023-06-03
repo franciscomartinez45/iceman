@@ -154,16 +154,15 @@ void IceMan::beAnnoyed(int annoy_value) {
 void Protester::doSomething() {
 	if (!isDead()) {
 		if (!isResting()) {
-			moveTowardsOilField();
-			/*	moveInDirection(getDirection());
+			if (leavingOilField) {
+				moveTowardsOilField();
 			}
-			else if (!attemptMoveToIceman()) {
-				pickNewDirection();
+			else if (!attemptShout()) {
+				if (!attemptMoveToIceman()) {
+					pickNewDirection();
+				}
 			}
 			ticksSinceLastPerpendicularTurn++;
-
-		}
-	}		*/
 		}
 	}
 }
@@ -282,14 +281,22 @@ void Protester::moveTowardsOilField() //moves to center of field
 
 
 }
+
+const int SHOUT_COOLOFF_LENGTH = 15;
 bool Protester::attemptShout() {
 	if (getDistanceToPlayer() <= 4) {
-		w.playSound(SOUND_PROTESTER_YELL);
-		w.getPlayer()->beAnnoyed(2);
-		waitTicks = 50;
+		if (shoutCooloff <= 0) {
+			w.playSound(SOUND_PROTESTER_YELL);
+			w.getPlayer()->beAnnoyed(2);
+			shoutCooloff = SHOUT_COOLOFF_LENGTH;
+		}
+		else if (shoutCooloff > 0) {
+			shoutCooloff--;
+		}
 		return true;
 	}
-	else { return false; }
+	else
+		return false; 
 }
 bool Protester::willCollide(std::pair<int, int> new_pos) {
 	if (!Actor::willCollide(new_pos)) {
@@ -755,9 +762,4 @@ double Squirt::getDistanceToActor(std::unique_ptr<Actor>& object) { return 0.0; 
 
 bool Squirt::checkRadius() { return true; }
 void Squirt::affectPlayerInRadius() {}
-void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object) {
-	
-
-
-
-}
+void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object) { }
