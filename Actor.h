@@ -71,11 +71,10 @@ protected:
 };
 
 const int ICEMAN_MAX_HEALTH = 10;
-const int ICEMAN_DEFAULT_WATER = 999;//5;
+const int ICEMAN_DEFAULT_WATER = 5;
 const int ICEMAN_DEFAULT_SONAR = 1;
 
 const int CAP_TWO_DIGITS = 99;
-// further class modualarization to come
 class IceMan : public Actor {
 public:
 	IceMan(StudentWorld& world, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
@@ -118,41 +117,36 @@ public:
 	void useWater() {
 		water--;
 	}
-private:
-	// TESTING FUNCTION - NOT INTENDED FOR REAL GAMEPLAY
-	//void getReturnPath();	
+	bool hasMovedThisTick() {
+		return movedThisTick;
+	}
 
+private:
 	int water = ICEMAN_DEFAULT_WATER;
 	int sonar = ICEMAN_DEFAULT_SONAR;
 	int nuggs = 0;
 	int numBarrels = 0;
 	bool isReturning = false;
+
+	bool movedThisTick = false;
 };
 
-const int PROTESTER_MAX_HEALTH = 5;
+const int PROTESTER_SPAWN_X = VIEW_WIDTH - ACTOR_HEIGHT;
+const int PROTESTER_SPAWN_Y = VIEW_HEIGHT - ACTOR_HEIGHT;
 const int PROTESTER_PERPENDICULAR_THRESHOLD = 200;
-const int DISTANCE_TO_OIL_TUNNEL = 30;
-class Protester : public Actor {
+class ProtesterBase : public Actor {
 public:
-	Protester(StudentWorld& world, int level, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0)
-		: Actor(world, PROTESTER_MAX_HEALTH, IID_PROTESTER, startX, startY, dir, size, depth), waitTicks(std::max(0, 3 - (level / 4))) {
+	ProtesterBase(StudentWorld& world, int level, int health, int image, int squirtPoints, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0)
+		: Actor(world, health, image, startX, startY, dir, size, depth), waitTicks(std::max(0, 3 - (level / 4))), squirtPointsValue(squirtPoints) {
 		updateNumSquares();
-
 	}
-	
-
-
 
 	void doSomething();
 	void beAnnoyed(int annoy_value); // Francisco
-	virtual void beBribed();
-	
-	
-	
+	virtual void beBribed() =0;
+
 protected:
 	bool willCollide(std::pair<int, int> new_pos);
-
-
 
 	void moveTowardsOilField(); // Francisco
 	bool attemptShout(); //{ return false; }        // Francisco
@@ -160,21 +154,47 @@ protected:
 	void pickNewDirection();
 
 	bool isResting();
-	bool isFacingIceman(); //{ return true; }     // Francisco
+	virtual bool trackIceman() { return false; }
+	bool isFacingIceman();
 	bool straightLineToIceman();
 	void updateNumSquares();
 
-	
-	
 	bool leavingOilField = false;
 	int waitTicks;
 	int currentWaitTicks = waitTicks;
-	int moveTicks = DISTANCE_TO_OIL_TUNNEL;
 	int numSquaresToMoveInCurrentDirection = 0;
 	int ticksSinceLastPerpendicularTurn = PROTESTER_PERPENDICULAR_THRESHOLD + 1;
 	int shoutCooloff = 0;
+
+	int squirtPointsValue;
+};
+
+const int PROTESTER_MAX_HEALTH = 5;
+const int PROTESTER_LEAVE_AMOUNT_SQUIRT = 100;
+class Protester : public ProtesterBase {
+public:
+	Protester(StudentWorld& world, int level, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0)
+		: ProtesterBase(world, level, PROTESTER_MAX_HEALTH, IID_PROTESTER, PROTESTER_LEAVE_AMOUNT_SQUIRT, startX, startY, dir, size, depth) {}
+
+	virtual void beBribed();
+};
+
+const int HARDCORE_MAX_HEALTH = 20;
+const int HARDCORE_LEAVE_AMOUNT_SQUIRT = 250;
+class HardcoreProtester : public ProtesterBase {
+public:
+	HardcoreProtester(StudentWorld& world, int level, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0)
+		: ProtesterBase(world, level, HARDCORE_MAX_HEALTH, IID_HARD_CORE_PROTESTER, HARDCORE_LEAVE_AMOUNT_SQUIRT, startX, startY, dir, size, depth),
+	maxMovesToPlayer(16 + (level * 2)), bribeRestTime(std::max(50, 100 - (level * 10))) {}
+
+	virtual void beBribed();
+
 private:
-	std::vector<std::pair<int, int>> visitedCoordinates;
+	bool trackIceman();
+	bool canFindIceman();
+
+	int maxMovesToPlayer;
+	int bribeRestTime;
 };
 
 const int ICE_DEPTH = 3;
@@ -371,12 +391,14 @@ const unsigned int DEFAULT_ICE_DESTROY_RANGE = 4;
 
 class Ice {
 public:
-	void calculateExitPaths();
 	Ice(StudentWorld& world);
 	// smart pointers mean that we don't have to delete anything ourselves
 
 	std::shared_ptr<IceBlock>& getBlock(int x, int y);
+
+	void calculateExitPaths(bool toPlayer = false);
 	std::optional<std::pair<int, int>> getPrevBlock(int x, int y);
+	std::optional<std::pair<int, int>> getPrevBlockPlayer(int x, int y);
 
 	bool destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size);
 
@@ -386,13 +408,13 @@ public:
 	size_t getNumOpenSquares() { return openSquares.size(); }
 	size_t getNumIceSquares() { return iceSquares.size(); }
 	
-	std::array<std::array<std::optional<std::pair<int, int>>, VIEW_HEIGHT>, VIEW_WIDTH> previousBlock;
 private:
 	// a less disgusting way to write this would be appreciated
 	// using namespace std would just be a stopgap
 	// making the elements unique_ptrs without incurring the compiler's wrath would also be cool
 	std::array<std::array<std::shared_ptr<IceBlock>, VIEW_HEIGHT>, VIEW_WIDTH> iceObjects;
 	std::array<std::array<std::optional<std::pair<int, int>>, VIEW_HEIGHT>, VIEW_WIDTH> prevSpaces;
+	std::array<std::array<std::optional<std::pair<int, int>>, VIEW_HEIGHT>, VIEW_WIDTH> prevSpacesPlayer;
 
 	std::vector<std::pair<unsigned int, unsigned int>> openSquares;
 	std::vector<std::pair<unsigned int, unsigned int>> iceSquares;
