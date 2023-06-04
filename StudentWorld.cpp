@@ -21,15 +21,16 @@ int StudentWorld::init() {
 
 
 	StudentWorld::player = std::make_unique<IceMan>(getWorld(), 30, 60);
+
+	targetProtesters = std::min(15, 2 + int(getLevel() * 1.5));
+	protesterAddTime = std::max(25, int(200 - getLevel()));
+
 	ice = std::make_unique<Ice>(getWorld());
 
 	// spawn ice goodies
 	int num_boulders = std::min(getLevel() / 2 + 2, unsigned int(9));
 	int num_nuggs = std::max(5 - getLevel(), unsigned int(2));
 	int num_barrels = std::min(getLevel() + 2, unsigned int(21));
-
-	// TESTING FUNCTION - THIS WILL BE IN move() LATER
-	objects.push_back(std::make_unique<Protester>(getWorld(), getLevel(), 60, 60));
 
 	for (auto i : std::ranges::iota_view(0, num_boulders))
 		spawnObjectInIce(ObjectType::Boulder);
@@ -39,9 +40,6 @@ int StudentWorld::init() {
 		spawnObjectInIce(ObjectType::Barrel);
 
 	player->addOil(num_barrels);
-
-	// useful test case - you may want to repurpose this for the barrels
-	//props.push_back(std::make_unique<Nugg>(getWorld(), false, 60, 60));
 
 	return GWSTATUS_CONTINUE_GAME;
 }
@@ -54,6 +52,8 @@ int StudentWorld::move() {
 		StudentWorld::player->doSomething();
 		for (auto& object : objects)
 			object->doSomething();
+
+		attemptSpawnProtester();
 
 		int goodie_chance = getLevel() * 25 + 300; // magic numbers - boss's orders
 
@@ -201,7 +201,31 @@ bool StudentWorld::vetIceSpawnCoords(std::pair<unsigned int, unsigned int> p,
 	return true;
 }
 
-// TODO: ADD BARREL COUNT
+void StudentWorld::attemptSpawnProtester() {
+	if (protesterAddTimer == 0) {
+		int num_current_protesters = 0;
+		for (auto& object : objects) {
+			if (object->isActor())
+				num_current_protesters++;
+		}
+
+		if (num_current_protesters < targetProtesters) {
+			auto chance_of_hardcore = std::min(90, int(getLevel() * 10 + 30));
+			auto roll = std::uniform_int_distribution(1, 100)(generator);
+			if (roll <= chance_of_hardcore) {
+				objects.push_back(std::make_unique<HardcoreProtester>(getWorld(), getLevel(), PROTESTER_SPAWN_X, PROTESTER_SPAWN_Y));
+			}
+			else {
+				objects.push_back(std::make_unique<Protester>(getWorld(), getLevel(), PROTESTER_SPAWN_X, PROTESTER_SPAWN_Y));
+			}
+			protesterAddTimer = protesterAddTime;
+		}
+	}
+	else {
+		protesterAddTimer--;
+	}
+}
+
 void StudentWorld::setStatusBar() {
 	std::stringstream status;
 	const std::string separator = "  ";
