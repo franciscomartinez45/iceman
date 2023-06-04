@@ -233,7 +233,7 @@ void Protester::doSomething() {
 	if (!isDead()) {
 
 		if (!isResting()) {
-			if (!isAnnoyed) {
+			if (!leavingOilField) {
 				if (isFacingIceman()) {
 					moveInDirection(getDirection());
 				}
@@ -246,7 +246,7 @@ void Protester::doSomething() {
 				ticksSinceLastPerpendicularTurn++;
 				w.getIce()->calculateExitPaths();
 			}
-			else if(isAnnoyed){
+			else if(leavingOilField){
 				moveTowardsOilField();
 			}
 		}
@@ -259,18 +259,21 @@ void Protester::moveTowardsOilField() //moves to center of field
 
 	auto current = std::make_pair<int, int>(getX(), getY());
 	auto previous = w.getIce()->getPrevBlock(getX(), getY());
-	auto dir = changeDirection(current, previous.value());
-	setDirection(dir);
-	moveTo(previous->first, previous->second);
-
-
-
+	if (!previous) {
+		dead = true;
+	}
+	else {
+		auto dir = changeDirection(current, previous.value());
+		setDirection(dir);
+		moveTo(previous->first, previous->second);
+	}
 }
+
 void Protester::beAnnoyed(int annoy_value)
 {
 	health -= annoy_value;
 	if (health <= 0) {
-		isAnnoyed = true;
+		leavingOilField = true;
 		w.playSound(SOUND_PROTESTER_GIVE_UP);
 	}
 	else { w.playSound(SOUND_PROTESTER_ANNOYED); }
@@ -280,6 +283,7 @@ const int PROTESTER_BRIBE_AMOUNT = 25;
 void Protester::beBribed() {
 	w.playSound(SOUND_PROTESTER_FOUND_GOLD);
 	w.increaseScore(PROTESTER_BRIBE_AMOUNT);
+	leavingOilField = true;
 }
 
 bool Protester::attemptMoveToIceman() {
@@ -370,15 +374,24 @@ std::optional<std::pair<int, int>> Ice::getPrevBlock(int x, int y) {
 
 
 // extremely glorious bracket staircase
+const int SHOUT_COOLOFF_LENGTH = 15;
 bool Protester::attemptShout() {
 	if (getDistanceToPlayer() <= 4) {
-		w.playSound(SOUND_PROTESTER_YELL);
-		w.getPlayer()->beAnnoyed(2);
-		waitTicks = 50;
+		if (shoutCooloff <= 0) {
+			w.playSound(SOUND_PROTESTER_YELL);
+			w.getPlayer()->beAnnoyed(2);
+			shoutCooloff = SHOUT_COOLOFF_LENGTH;
+		}
+		else if (shoutCooloff > 0) {
+			shoutCooloff--;
+		}
 		return true;
 	}
-	else { return false; }
+	else
+		return false;
 }
+
+
 bool Protester::willCollide(std::pair<int, int> new_pos) {
 	if (!Actor::willCollide(new_pos)) {
 		for (auto& object : w.getObjects()) {
