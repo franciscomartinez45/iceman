@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <optional>
 #include <array>
+#include<list>
 
 const int ACTOR_HEIGHT = 4;
 const int ACTOR_WIDTH_LIMIT = VIEW_WIDTH - 4;
@@ -70,7 +71,7 @@ protected:
 };
 
 const int ICEMAN_MAX_HEALTH = 10;
-const int ICEMAN_DEFAULT_WATER = 5;
+const int ICEMAN_DEFAULT_WATER = 999;//5;
 const int ICEMAN_DEFAULT_SONAR = 1;
 
 const int CAP_TWO_DIGITS = 99;
@@ -82,6 +83,8 @@ public:
 	}
 	void doSomething();
 	void beAnnoyed(int annoy_value);
+
+	
 
 	int getWater() { return water; }
 	int getSonar() { return sonar; }
@@ -123,6 +126,7 @@ private:
 	int sonar = ICEMAN_DEFAULT_SONAR;
 	int nuggs = 0;
 	int numBarrels = 0;
+	bool isReturning = false;
 };
 
 const int PROTESTER_MAX_HEALTH = 5;
@@ -133,14 +137,23 @@ public:
 	Protester(StudentWorld& world, int level, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0)
 		: Actor(world, PROTESTER_MAX_HEALTH, IID_PROTESTER, startX, startY, dir, size, depth), waitTicks(std::max(0, 3 - (level / 4))) {
 		updateNumSquares();
+
 	}
+	
+	bool isBackAtStart();
+
+	void moveTowardsOilField(int i);
 
 	void doSomething();
 	void beAnnoyed(int annoy_value); // Francisco
 	virtual void beBribed();
-
+	
+	
+	
 protected:
 	bool willCollide(std::pair<int, int> new_pos);
+
+
 
 	void moveTowardsOilField(); // Francisco
 	bool attemptShout(); //{ return false; }        // Francisco
@@ -151,16 +164,18 @@ protected:
 	bool isFacingIceman(); //{ return true; }     // Francisco
 	bool straightLineToIceman();
 	void updateNumSquares();
-	void moveToCenter();
 
+	
+	
+	bool isAnnoyed = false;
 	int waitTicks;
 	int currentWaitTicks = waitTicks;
 	bool leavingOilField = false;
 	int moveTicks = DISTANCE_TO_OIL_TUNNEL;
 	int numSquaresToMoveInCurrentDirection = 0;
 	int ticksSinceLastPerpendicularTurn = PROTESTER_PERPENDICULAR_THRESHOLD + 1;
-	int shoutCooloff = 0;
-
+private:
+	std::vector<std::pair<int, int>> visitedCoordinates;
 };
 
 const int ICE_DEPTH = 3;
@@ -364,6 +379,7 @@ const unsigned int DEFAULT_ICE_DESTROY_RANGE = 4;
 
 class Ice {
 public:
+	void calculateExitPaths(Object& protester);
 	Ice(StudentWorld& world);
 	// smart pointers mean that we don't have to delete anything ourselves
 
@@ -377,7 +393,8 @@ public:
 
 	size_t getNumOpenSquares() { return openSquares.size(); }
 	size_t getNumIceSquares() { return iceSquares.size(); }
-
+	void calculateExitPaths();
+	std::array<std::array<std::optional<std::pair<int, int>>, VIEW_HEIGHT>, VIEW_WIDTH> previousBlock;
 private:
 	// a less disgusting way to write this would be appreciated
 	// using namespace std would just be a stopgap
@@ -390,7 +407,7 @@ private:
 
 	void populateAvailableSquares();
 
-	void calculateExitPaths();
+	
 
 	StudentWorld& w;
 };
