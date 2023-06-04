@@ -118,8 +118,7 @@ void IceMan::doSomething() {
 				}
 				break;
 			case KEY_PRESS_ESCAPE:
-			
-				//beAnnoyed(INSTAKILL_DAMAGE);
+				beAnnoyed(INSTAKILL_DAMAGE);
 				break;
 			case 'Z':
 			case 'z':
@@ -269,18 +268,28 @@ void Protester::moveTowardsOilField() //moves to center of field
 	}
 }
 
+const int PROTESTER_LEAVE_AMOUNT_SQUIRT = 100;
+const int PROTESTER_LEAVE_AMOUNT_SQUIRT_HARDCORE = 250;
+const int PROTESTER_LEAVE_AMOUNT_BOULDER = 500;
 void Protester::beAnnoyed(int annoy_value)
 {
+	if (leavingOilField)
+		return;
+
 	health -= annoy_value;
 	if (health <= 0) {
 		leavingOilField = true;
 		w.playSound(SOUND_PROTESTER_GIVE_UP);
+		w.increaseScore((killedByBoulder) ? PROTESTER_LEAVE_AMOUNT_BOULDER : PROTESTER_LEAVE_AMOUNT_SQUIRT);
 	}
 	else { w.playSound(SOUND_PROTESTER_ANNOYED); }
 }
 
 const int PROTESTER_BRIBE_AMOUNT = 25;
 void Protester::beBribed() {
+	if (leavingOilField)
+		return;
+
 	w.playSound(SOUND_PROTESTER_FOUND_GOLD);
 	w.increaseScore(PROTESTER_BRIBE_AMOUNT);
 	leavingOilField = true;
@@ -316,7 +325,7 @@ void Protester::pickNewDirection() {
 		viable_directions.set(i, !willCollide(getPointInDirection(Direction(i + 1))));
 	}
 
-	if (numSquaresToMoveInCurrentDirection <= 0) {
+	if (numSquaresToMoveInCurrentDirection <= 0 and viable_directions.count() != 0) {
 		auto new_dir = std::uniform_int_distribution<int>(0, viable_directions.count() - 1)(w.getGenerator());
 		while (!viable_directions[new_dir]) {
 			new_dir++;
@@ -660,6 +669,43 @@ void Boulder::doSomething() {
 		}
 	}
 }
+
+void Boulder::affectPlayerInRadius() {
+	w.getPlayer()->beAnnoyed(INSTAKILL_DAMAGE);
+}
+
+void Boulder::affectObjectInRadius(std::unique_ptr<Object>& object) {
+	object->wasKilledByBoulder();
+	object->beAnnoyed(INSTAKILL_DAMAGE);
+}
+
+bool Boulder::hasIceUnder() {
+	auto j = getY() - 1;
+	if (j < 0)
+		return false;
+
+	for (auto i : std::ranges::iota_view(getX(), getX() + ACTOR_HEIGHT)) {
+		if (w.getIce()->getBlock(i, j) != nullptr)
+			return true;
+	}
+	return false;
+}
+
+bool Boulder::hasBoulderUnder() {
+	if ((getY() - ACTOR_HEIGHT) < 0)
+		return false;
+
+	for (auto& object : w.getObjects()) {
+		if (object->isBoulder()) {
+			if ((object->getY() == getY() + ACTOR_HEIGHT - 1)
+				and (object->getX() > getX() - ACTOR_HEIGHT)
+				and (object->getX() < getX() + ACTOR_HEIGHT))
+				return true;
+		}
+	}
+	return false;
+}
+
 const int ANNOYANCE_POINTS = 2;
 void Squirt::doSomething() {
 	if (lifespan > 0 and !isDead()) {
@@ -697,40 +743,6 @@ void Squirt::doSomething() {
 	}
 
 	else { dead = true; }
-}
-void Boulder::affectPlayerInRadius() {
-	w.getPlayer()->beAnnoyed(INSTAKILL_DAMAGE);
-}
-
-void Boulder::affectObjectInRadius(std::unique_ptr<Actor>& object) {
-	// TODO
-}
-
-bool Boulder::hasIceUnder() {
-	auto j = getY() - 1;
-	if (j < 0)
-		return false;
-
-	for (auto i : std::ranges::iota_view(getX(), getX() + ACTOR_HEIGHT)) {
-		if (w.getIce()->getBlock(i, j) != nullptr)
-			return true;
-	}
-	return false;
-}
-
-bool Boulder::hasBoulderUnder() {
-	if ((getY() - ACTOR_HEIGHT) < 0)
-		return false;
-
-	for (auto& object : w.getObjects()) {
-		if (object->isBoulder()) {
-			if ((object->getY() == getY() + ACTOR_HEIGHT - 1)
-				and (object->getX() > getX() - ACTOR_HEIGHT)
-				and (object->getX() < getX() + ACTOR_HEIGHT))
-				return true;
-		}
-	}
-	return false;
 }
 
 Ice::Ice(StudentWorld& world) : w(world) {
@@ -853,11 +865,11 @@ void Ice::populateAvailableSquares() {
 	}*/
 }
 double Squirt::getDistanceToPlayer() { return 0.0; }
-double Squirt::getDistanceToActor(std::unique_ptr<Actor>& object) { return 0.0; }
+double Squirt::getDistanceToActor(std::unique_ptr<Object>& object) { return 0.0; }
 
 bool Squirt::checkRadius() { return true; }
 void Squirt::affectPlayerInRadius() {}
-void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object) {
+void Squirt::affectObjectInRadius(std::unique_ptr<Object>& object) {
 	
 
 
