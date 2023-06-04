@@ -47,9 +47,17 @@ public:
 	std::list<std::unique_ptr<Object>>& getObjects() {
 		return objects;
 	}
+
+	auto& getGenerator() {
+		return generator;
+	}
+
 	void spawnSquirt();
 	void spawnPlayerNugg();
 	void revealObjects();
+
+	bool isIntersectingBoulder(unsigned int x, unsigned int y);
+	bool isIntersectingIce(unsigned int x, unsigned int y);
 private:
 	bool isIntersectingObject(unsigned int x, unsigned int y);
 	bool isIntersectingObject(std::pair<unsigned int, unsigned int> p);
