@@ -229,7 +229,7 @@ public:
 
 private:
 	void updatePlayerInventory();
-	virtual void affectObjectInRadius(std::unique_ptr<Actor>& object) {}
+	virtual void affectObjectInRadius(std::unique_ptr<Object>& object) {}
 
 	int lifespan = 0;
 };
@@ -314,11 +314,11 @@ public:
 	}
 	void doSomething();
 	double getDistanceToPlayer();
-	double getDistanceToActor(std::unique_ptr<Actor>& object);
+	double getDistanceToActor(std::unique_ptr<Object>& object);
 
 	bool checkRadius();
 	void affectPlayerInRadius();
-	void affectObjectInRadius(std::unique_ptr<Actor>& object);
+	void affectObjectInRadius(std::unique_ptr<Object>& object);
 	
 private:
 	int lifespan = 0;
@@ -345,7 +345,7 @@ public:
 
 private:
 	void affectPlayerInRadius();
-	void affectObjectInRadius(std::unique_ptr<Actor>& object);
+	void affectObjectInRadius(std::unique_ptr<Object>& object);
 
 	bool hasIceUnder();
 	bool hasBoulderUnder();
