@@ -140,9 +140,8 @@ public:
 
 	}
 	
-	bool isBackAtStart();
 
-	void moveTowardsOilField(int i);
+
 
 	void doSomething();
 	void beAnnoyed(int annoy_value); // Francisco
@@ -379,7 +378,7 @@ const unsigned int DEFAULT_ICE_DESTROY_RANGE = 4;
 
 class Ice {
 public:
-	void calculateExitPaths(Object& protester);
+	void calculateExitPaths();
 	Ice(StudentWorld& world);
 	// smart pointers mean that we don't have to delete anything ourselves
 
@@ -393,7 +392,7 @@ public:
 
 	size_t getNumOpenSquares() { return openSquares.size(); }
 	size_t getNumIceSquares() { return iceSquares.size(); }
-	void calculateExitPaths();
+	
 	std::array<std::array<std::optional<std::pair<int, int>>, VIEW_HEIGHT>, VIEW_WIDTH> previousBlock;
 private:
 	// a less disgusting way to write this would be appreciated
