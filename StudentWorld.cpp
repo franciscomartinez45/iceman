@@ -275,3 +275,23 @@ void StudentWorld::spawnSquirt() {
 	}
 
 }
+
+bool StudentWorld::isIntersectingBoulder(unsigned int x, unsigned int y) {
+	for (auto& object : objects) {
+		if (object->isBoulder()) {
+			if (object->intersects(x, y))
+				return true;
+		}
+	}
+	return false;
+}
+
+bool StudentWorld::isIntersectingIce(unsigned int x, unsigned int y) {
+	for (auto i : std::ranges::iota_view(x, x + ACTOR_HEIGHT)) {
+		for (auto j : std::ranges::iota_view(y, y + ACTOR_HEIGHT)) {
+			if (ice->getBlock(i, j) != nullptr)
+				return true;
+		}
+	}
+	return false;
+}
