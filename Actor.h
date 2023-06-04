@@ -166,13 +166,13 @@ protected:
 
 	
 	
-	bool isAnnoyed = false;
+	bool leavingOilField = false;
 	int waitTicks;
 	int currentWaitTicks = waitTicks;
-	bool leavingOilField = false;
 	int moveTicks = DISTANCE_TO_OIL_TUNNEL;
 	int numSquaresToMoveInCurrentDirection = 0;
 	int ticksSinceLastPerpendicularTurn = PROTESTER_PERPENDICULAR_THRESHOLD + 1;
+	int shoutCooloff = 0;
 private:
 	std::vector<std::pair<int, int>> visitedCoordinates;
 };
