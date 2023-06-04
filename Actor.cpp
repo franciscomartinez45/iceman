@@ -2,6 +2,10 @@
 #include "StudentWorld.h"
 #include <cmath>
 #include <array>
+#include <random>
+#include <bitset>
+#include <queue>
+#include <thread>
 
 // distance formula time
 float Object::getDistanceTo(Object& other) {
@@ -29,10 +33,56 @@ std::optional<double> Object::getDistanceToActor(std::unique_ptr<Object>& actor)
 	return getDistanceTo(*(actor.get()));
 }
 
+bool Actor::willCollide(std::pair<int, int> new_pos) {
+	if (new_pos.first < 0 or new_pos.first > ACTOR_WIDTH_LIMIT or new_pos.second < 0 or new_pos.second > ACTOR_HEIGHT_LIMIT)
+		return true;
+
+	for (auto& object : w.getObjects()) {
+		if (object->isBoulder() and object->intersects(new_pos.first, new_pos.second))
+			return true;
+	}
+
+	return false;
+}
+
+std::pair<int, int> Actor::getPointInDirection(Direction dir) {
+	auto new_pos = std::make_pair<int>(getX(), getY());
+	switch (dir) {
+	case up:
+		new_pos.second++;
+		break;
+	case down:
+		new_pos.second--;
+		break;
+	case left:
+		new_pos.first--;
+		break;
+	case right:
+		new_pos.first++;
+		break;
+	}
+	return new_pos;
+}
+
+bool Actor::moveInDirection(Direction dir) {
+	auto new_pos = getPointInDirection(dir);
+	auto prev_pos = std::make_pair<int>(getX(), getY());;
+
+	// bounds checking
+	bool moved = true;
+	if (willCollide(new_pos)) {
+		new_pos = prev_pos;
+		moved = false;
+	}
+
+	moveTo(new_pos.first, new_pos.second);
+	return moved;
+}
+
 void IceMan::doSomething() {
 	if (!isDead()) {
 		// remove intersecting ice
-
+		
 		if (w.getIce()->destroyIce(getX(), getY(), ACTOR_HEIGHT, ACTOR_HEIGHT))
 			w.playSound(SOUND_DIG);
 		int key;
@@ -68,7 +118,8 @@ void IceMan::doSomething() {
 				}
 				break;
 			case KEY_PRESS_ESCAPE:
-				beAnnoyed(INSTAKILL_DAMAGE);
+			
+				//beAnnoyed(INSTAKILL_DAMAGE);
 				break;
 			case 'Z':
 			case 'z':
@@ -87,28 +138,7 @@ void IceMan::doSomething() {
 					setDirection(new_dir);
 
 				else {
-					auto new_pos = std::make_pair<int>(getX(), getY());
-					auto prev_pos = new_pos;
-
-					switch (new_dir) {
-					case up:
-						new_pos.second++;
-						break;
-					case down:
-						new_pos.second--;
-						break;
-					case left:
-						new_pos.first--;
-						break;
-					case right:
-						new_pos.first++;
-						break;
-					}
-
-					// bounds checking
-					if (willCollide(new_pos))
-						new_pos = prev_pos;
-					moveTo(new_pos.first, new_pos.second);
+					moveInDirection(new_dir);
 				}
 			}
 		}
@@ -124,36 +154,377 @@ void IceMan::beAnnoyed(int annoy_value) {
 	}
 }
 
-bool Actor::willCollide(std::pair<int, int> new_pos) {
-	if (new_pos.first < 0 or new_pos.first > ACTOR_WIDTH_LIMIT or new_pos.second < 0 or new_pos.second > ACTOR_WIDTH_LIMIT)
-		return true;
-	
-	for (auto& object : w.getObjects()) {
-		if (object->isBoulder() and object->intersects(new_pos.first, new_pos.second))
-			return true;
+
+GraphObject::Direction changeDirection(std::pair<int,int> current, std::pair<int,int> previous) { //calculates change in direction
+	if (current.first < previous.first) {
+		return GraphObject::right;
 	}
+	else if (current.first > previous.first) {
+		return GraphObject::left;
+	}
+	else if (current.second < previous.second) {
+		return GraphObject::up;
 
-	return false;
+	}
+	else {
+		return GraphObject::down;
+	}
 }
 
-Protester::Protester(StudentWorld& world, int startX, int startY, Direction dir, double size, unsigned int depth)
-	: Actor(world, PROTESTER_MAX_HEALTH, IID_PROTESTER, startX, startY, dir, size, depth) {
-	updateRestTicks();
-}
+const int RETURN_POINT_X = VIEW_WIDTH - ACTOR_HEIGHT;
+const int RETURN_POINT_Y = VIEW_HEIGHT - ACTOR_HEIGHT;
 
-void Protester::doSomething() {
-	if (!isDead()) {
-		if (!isResting()) {
-			if (leavingOilField) {
-				moveTowardsOilField();
-			}
-			else if (!attemptShout()) {
-				if (!attemptMoveToIceman()) {
-					pickNewDirection();
+void Ice::calculateExitPaths() {
+	int path_point_x = RETURN_POINT_X;
+	int path_point_y = RETURN_POINT_Y;
+
+	// this is effectively a 60x60 (objects will never be further than that)
+	// array of bools
+	std::bitset<(RETURN_POINT_X* (RETURN_POINT_Y + 1) + RETURN_POINT_X + 1)> seen_points(false);
+	std::queue<int> path_points;
+
+	// the real deal will use the actors as stopping points
+	// but this will be useful as a test case
+
+	// hacky way to condense two points into a single unique value
+	int point_hash = path_point_x + (path_point_y * (RETURN_POINT_Y + 1));
+	seen_points[point_hash] = true;
+	path_points.push(point_hash);
+
+	while (!path_points.empty()) {
+
+		auto current_point = path_points.front();
+		path_points.pop();
+		path_point_x = current_point % (RETURN_POINT_Y + 1);
+		path_point_y = current_point / (RETURN_POINT_Y + 1);
+
+		//std::cout << current_point << ' ' << path_point_x << ' ' << path_point_y << '\n';
+
+		// find next points
+		std::array<std::pair<int, int>, 4> neighbors = {
+			std::make_pair(path_point_x + 1, path_point_y), //right
+			std::make_pair(path_point_x - 1, path_point_y), //left
+			std::make_pair(path_point_x, path_point_y + 1),	//up
+			std::make_pair(path_point_x, path_point_y - 1)	//down
+		};
+
+		for (auto& point : neighbors) {
+			// check if point is within bounds
+			//std::cout << "Test " << point.first << ' ' << point.second << '\n';
+			if (point.first >= 0 and point.first <= RETURN_POINT_X
+				and point.second >= 0 and point.second <= RETURN_POINT_Y) {
+				// check if point is an open space
+				if (!w.isIntersectingBoulder(point.first, point.second)
+					and !w.isIntersectingIce(point.first, point.second)) {
+					// point cannot have been seen already
+					int prospective_point_hash = point.first + (point.second * (RETURN_POINT_Y + 1));
+					if (!seen_points[prospective_point_hash]) {
+						seen_points[prospective_point_hash] = true;
+						path_points.push(prospective_point_hash);
+						prevSpaces[point.first][point.second] = std::make_pair(path_point_x, path_point_y);
+						//std::cout << point.first << ' ' << point.second << ' ' << prospective_point_hash << '\n';
+					}
 				}
 			}
 		}
 	}
+}
+void Protester::doSomething() {
+	if (!isDead()) {
+
+		if (!isResting()) {
+			if (!leavingOilField) {
+				if (isFacingIceman()) {
+					moveInDirection(getDirection());
+				}
+				else if (!attemptShout()) {
+					if (!attemptMoveToIceman()) {
+						pickNewDirection();
+					}
+
+				}
+				ticksSinceLastPerpendicularTurn++;
+				w.getIce()->calculateExitPaths();
+			}
+			else if(leavingOilField){
+				moveTowardsOilField();
+			}
+		}
+	}
+}
+
+void Protester::moveTowardsOilField() //moves to center of field
+
+{
+
+	auto current = std::make_pair<int, int>(getX(), getY());
+	auto previous = w.getIce()->getPrevBlock(getX(), getY());
+	if (!previous) {
+		dead = true;
+	}
+	else {
+		auto dir = changeDirection(current, previous.value());
+		setDirection(dir);
+		moveTo(previous->first, previous->second);
+	}
+}
+
+void Protester::beAnnoyed(int annoy_value)
+{
+	health -= annoy_value;
+	if (health <= 0) {
+		leavingOilField = true;
+		w.playSound(SOUND_PROTESTER_GIVE_UP);
+	}
+	else { w.playSound(SOUND_PROTESTER_ANNOYED); }
+}
+
+const int PROTESTER_BRIBE_AMOUNT = 25;
+void Protester::beBribed() {
+	w.playSound(SOUND_PROTESTER_FOUND_GOLD);
+	w.increaseScore(PROTESTER_BRIBE_AMOUNT);
+	leavingOilField = true;
+}
+
+bool Protester::attemptMoveToIceman() {
+	if (straightLineToIceman()) {
+		Direction new_dir = none;
+		if (getX() == w.getPlayer()->getX()) {
+			if (getY() < w.getPlayer()->getY())
+				new_dir = up;
+			else
+				new_dir = down;
+		}
+		if (getY() == w.getPlayer()->getY()) {
+			if (getX() < w.getPlayer()->getX())
+				new_dir = right;
+			else
+				new_dir = left;
+		}
+		setDirection(new_dir);
+		moveInDirection(new_dir);
+
+		return true;
+	}
+	return false;
+}
+
+const int NUM_DIRECTIONS = 4;
+void Protester::pickNewDirection() {
+	std::bitset<NUM_DIRECTIONS> viable_directions(false);
+	for (auto i : std::ranges::iota_view(0, NUM_DIRECTIONS)) {
+		viable_directions.set(i, !willCollide(getPointInDirection(Direction(i + 1))));
+	}
+
+	if (numSquaresToMoveInCurrentDirection <= 0) {
+		auto new_dir = std::uniform_int_distribution<int>(0, viable_directions.count() - 1)(w.getGenerator());
+		while (!viable_directions[new_dir]) {
+			new_dir++;
+		}
+
+		setDirection(Direction(new_dir + 1));
+		updateNumSquares();
+	}
+
+	if (ticksSinceLastPerpendicularTurn >= PROTESTER_PERPENDICULAR_THRESHOLD) {
+		// pontificate if a perpendicular path is possible
+		auto perpendicular_options = std::make_pair<Direction, Direction>(none, none);
+		switch (getDirection()) {
+		case up:
+		case down:
+			if (viable_directions[left - 1])
+				perpendicular_options.first = left;
+			if (viable_directions[right - 1])
+				perpendicular_options.second = right;
+			break;
+		case left:
+		case right:
+			if (viable_directions[up - 1])
+				perpendicular_options.first = up;
+			if (viable_directions[down - 1])
+				perpendicular_options.second = down;
+			break;
+		}
+
+		if (perpendicular_options.first != none or perpendicular_options.second != none) {
+			if (perpendicular_options.first == none)
+				setDirection(perpendicular_options.second);
+			else if (perpendicular_options.second == none)
+				setDirection(perpendicular_options.first);
+			else {
+				auto use_first = std::uniform_int_distribution<int>(0, 1)(w.getGenerator());
+				setDirection((use_first == 0) ? perpendicular_options.first : perpendicular_options.second);
+			}
+			updateNumSquares();
+			ticksSinceLastPerpendicularTurn = 0;
+		}
+	}
+
+	if (!moveInDirection(getDirection())) {
+		numSquaresToMoveInCurrentDirection = 0;
+	}
+
+	numSquaresToMoveInCurrentDirection--;
+}
+
+
+std::optional<std::pair<int, int>> Ice::getPrevBlock(int x, int y) {
+	return prevSpaces.at(x).at(y);
+}
+
+
+// extremely glorious bracket staircase
+const int SHOUT_COOLOFF_LENGTH = 15;
+bool Protester::attemptShout() {
+	if (getDistanceToPlayer() <= 4) {
+		if (shoutCooloff <= 0) {
+			w.playSound(SOUND_PROTESTER_YELL);
+			w.getPlayer()->beAnnoyed(2);
+			shoutCooloff = SHOUT_COOLOFF_LENGTH;
+		}
+		else if (shoutCooloff > 0) {
+			shoutCooloff--;
+		}
+		return true;
+	}
+	else
+		return false;
+}
+
+
+bool Protester::willCollide(std::pair<int, int> new_pos) {
+	if (!Actor::willCollide(new_pos)) {
+		for (auto& object : w.getObjects()) {
+			if (object->isBoulder() and object->getDistanceTo(*this) <= ITEM_PICKUP_DISTANCE) {
+				return true;
+			}
+		}
+
+		for (auto i : std::ranges::iota_view(new_pos.first, new_pos.first + ACTOR_HEIGHT)) {
+			for (auto j : std::ranges::iota_view(new_pos.second, new_pos.second + ACTOR_HEIGHT)) {
+				if (w.getIce()->getBlock(i, j) != nullptr) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	return true;
+}
+
+bool Protester::isResting() {
+	if (currentWaitTicks <= 0) {
+		currentWaitTicks = waitTicks;
+		return false;
+	}
+	else {
+		currentWaitTicks--;
+		return true;
+	}
+}
+
+
+bool Protester::isFacingIceman() {
+
+	
+	auto player = std::pair<int, int>(w.getPlayer()->getX(), w.getPlayer()->getY());
+	auto dir = none;
+	if (player.first == getX()) { // same row
+		if (player.second < getY()) {//protester is to the right of iceman
+			dir = down; //
+			
+		}
+		else if (player.second >= getY()) { //protester is to the left or at the position of iceman
+			dir = up;
+		}
+	}
+	else if (player.second == getY()) { //same column
+		if (player.first < getX()) {//protester is above iceman
+			dir = left;
+		}
+		else if (player.first >= getX()) {//protester is below or same height as iceman
+			dir = right;
+		}
+	}
+
+	if (dir == getDirection()) { //if facing iceman check for empty path
+		switch (dir) {
+		case left:
+			for (int i : std::ranges::iota_view(player.first, getX())) { //checks all values on same row from player to protester for collision
+				if (w.getIce()->getBlock(i, getY()) != nullptr) {
+					return false;
+				}
+			}
+			break;
+
+		case right:
+			for (int i : std::ranges::iota_view(getX(), player.first)) { //checks all blocks to the right of protester
+				if (w.getIce()->getBlock(i, getY()) != nullptr) {
+					return false;
+				}
+			}
+			break;
+		case up:
+			for (int i : std::ranges::iota_view(getY(), player.second)) { //from protester y to player y
+				if (w.getIce()->getBlock(getX(), i) != nullptr) {
+					return false;
+				}
+			}
+			break;
+		case down:
+			for (int i : std::ranges::iota_view(player.second, getY())) { //from iceman y to protester y
+				if (w.getIce()->getBlock(getX(), i) != nullptr){
+					return false;
+				}
+			}
+			break;
+		}
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+const double ANNOY_DISTANCE = 4.0;
+bool Protester::straightLineToIceman() {
+	if (getDistanceToPlayer() < ANNOY_DISTANCE) {
+		return false;
+	}
+	if (getX() == w.getPlayer()->getX()) {
+		auto y_min = std::min(getY(), w.getPlayer()->getY());
+		auto y_max = std::max(getY(), w.getPlayer()->getY());
+
+		std::pair<int, int> check_coords = std::make_pair(getX(), y_min);
+
+		for (auto i : std::ranges::iota_view(y_min, y_max + 1)) {
+			check_coords.second = i;
+			if (willCollide(check_coords))
+				return false;
+		}
+		return true;
+	}
+	if (getY() == w.getPlayer()->getY()) {
+		auto x_min = std::min(getX(), w.getPlayer()->getX());
+		auto x_max = std::max(getX(), w.getPlayer()->getX());
+
+		std::pair<int, int> check_coords = std::make_pair(x_min, getY());
+
+		for (auto i : std::ranges::iota_view(x_min, x_max + 1)) {
+			check_coords.first = i;
+			if (willCollide(check_coords))
+				return false;
+		}
+		return true;
+	}
+	return false;
+}
+
+const int MIN_NUM_SQUARES = 8;
+const int MAX_NUM_SQUARES = 60;
+void Protester::updateNumSquares() {
+	numSquaresToMoveInCurrentDirection = std::uniform_int_distribution<int>(MIN_NUM_SQUARES, MAX_NUM_SQUARES)(w.getGenerator());
 }
 
 const unsigned int WATER_PICKUP_AMOUNT = 5;
@@ -204,7 +575,7 @@ void Sonar::doSomething() { //collectible item
 			if (lifespan <= 0)
 				dead = true;
 			else
-				lifespan-=10;
+				lifespan -= 10;
 		}
 	}
 }
@@ -223,7 +594,7 @@ bool HiddenGoodie::checkRadius() {
 		setVisible(true);
 		return false;
 	}
-		
+
 	return Goodie::checkRadius();
 }
 
@@ -243,6 +614,12 @@ void Nugg::doSomething() {
 		}
 	}
 }
+
+void Nugg::affectObjectInRadius(std::unique_ptr<Object>& object) {
+	object->beBribed();
+	dead = true;
+}
+
 void Barrel::doSomething() {
 	if (!dead) {
 		checkRadius();
@@ -278,42 +655,47 @@ void Boulder::doSomething() {
 				moveTo(getX(), getY() - 1);
 				checkRadius();
 			}
-				
+
 			break;
 		}
 	}
 }
+const int ANNOYANCE_POINTS = 2;
 void Squirt::doSomething() {
 	if (lifespan > 0 and !isDead()) {
-			switch (w.getPlayer()->getDirection()) {
-			case GraphObject::right:
-				currentPosition.first++;
-				break;
-			case GraphObject::left:
-				currentPosition.first--;
-				break;
-			case GraphObject::up:
-				currentPosition.second++;
-				break;
-			case GraphObject::down:
-				currentPosition.second--;
-				break;
-			}
-
-	
-			if (w.getIce()->getBlock(currentPosition.first, currentPosition.second)==nullptr) {
-				//check if it'll hit a protestor
-				//decrement protestors hit points
-				//else move
-				moveTo(currentPosition.first, currentPosition.second);
-				lifespan--;
-			}
-			else {
-				lifespan = 0;
-				dead = true;
-			}
+		switch (w.getPlayer()->getDirection()) {
+		case GraphObject::right:
+			currentPosition.first++;
+			break;
+		case GraphObject::left:
+			currentPosition.first--;
+			break;
+		case GraphObject::up:
+			currentPosition.second++;
+			break;
+		case GraphObject::down:
+			currentPosition.second--;
+			break;
 		}
-	
+
+
+		if (w.getIce()->getBlock(currentPosition.first, currentPosition.second) == nullptr) {
+			for (auto& p : w.getObjects()) {
+				if (p->isActor() and p->getX() == currentPosition.first and p->getY() == currentPosition.second) {
+					p->beAnnoyed(ANNOYANCE_POINTS);
+					dead = true;
+					lifespan = 0;
+				}
+			}
+			moveTo(currentPosition.first, currentPosition.second);
+			lifespan--;
+		}
+		else {
+			lifespan = 0;
+			dead = true;
+		}
+	}
+
 	else { dead = true; }
 }
 void Boulder::affectPlayerInRadius() {
@@ -370,6 +752,7 @@ Ice::Ice(StudentWorld& world) : w(world) {
 std::shared_ptr<IceBlock>& Ice::getBlock(int x, int y) {
 	// includes bounds checking
 	return iceObjects.at(x).at(y);
+	
 }
 
 // removes ice in an x_size by y_size block from the given coordinates
@@ -385,9 +768,10 @@ bool Ice::destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsign
 			}
 		}
 	}
-	
+
 	if (destroyed_ice)
 		populateAvailableSquares();
+		calculateExitPaths();
 
 	return destroyed_ice;
 }
@@ -410,7 +794,7 @@ std::optional<std::pair<unsigned int, unsigned int>> Ice::getIceSquare(unsigned 
 // (useful for spawning objects)
 // it would do us good to move this into a thread at some point
 void Ice::populateAvailableSquares() {
-	
+
 	openSquares.erase(openSquares.begin(), openSquares.end());
 	iceSquares.erase(iceSquares.begin(), iceSquares.end());
 
@@ -469,8 +853,13 @@ void Ice::populateAvailableSquares() {
 	}*/
 }
 double Squirt::getDistanceToPlayer() { return 0.0; }
-double Squirt::getDistanceToActor(std::unique_ptr<Actor>& object) {return 0.0; }
+double Squirt::getDistanceToActor(std::unique_ptr<Actor>& object) { return 0.0; }
 
 bool Squirt::checkRadius() { return true; }
-void Squirt::affectPlayerInRadius(){}
-void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object){}
+void Squirt::affectPlayerInRadius() {}
+void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object) {
+	
+
+
+
+}

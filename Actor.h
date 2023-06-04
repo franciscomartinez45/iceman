@@ -2,13 +2,13 @@
 #define ACTOR_H_
 
 #include "GraphObject.h"
+#include "GameWorld.h"
 #include <vector>
 #include <ranges> // requires C++20
-#include "GameWorld.h"
 #include <algorithm>
 #include <optional>
 #include <array>
-#include <variant>
+#include<list>
 
 const int ACTOR_HEIGHT = 4;
 const int ACTOR_WIDTH_LIMIT = VIEW_WIDTH - 4;
@@ -32,6 +32,7 @@ public:
 	bool isActor() { return actorStatus; }
 	virtual bool isBoulder() { return false; }
 	void wasKilledByBoulder() { killedByBoulder = true; }
+	virtual void beBribed() {}
 
 	virtual void doSomething() = 0;
 	virtual void beAnnoyed(int annoy_value) = 0;
@@ -61,16 +62,16 @@ public:
 	virtual void beBribed() { }
 
 protected:
-	bool willCollide(std::pair<int, int> new_pos);
-
+	virtual bool willCollide(std::pair<int, int> new_pos);
+	bool moveInDirection(Direction dir);
+	std::pair<int, int> getPointInDirection(Direction dir);
+	
 	int max_health;
 	int health = max_health;
-	Actor(StudentWorld& world, int imageID, int startX, int startY, Direction dir = right, double size = 1.0, unsigned int depth = 0)
-		: Object(world, true, imageID, startX, startY, dir, size, depth) {}
 };
 
 const int ICEMAN_MAX_HEALTH = 10;
-const int ICEMAN_DEFAULT_WATER = 5;
+const int ICEMAN_DEFAULT_WATER = 999;//5;
 const int ICEMAN_DEFAULT_SONAR = 1;
 
 const int CAP_TWO_DIGITS = 99;
@@ -82,6 +83,8 @@ public:
 	}
 	void doSomething();
 	void beAnnoyed(int annoy_value);
+
+	
 
 	int getWater() { return water; }
 	int getSonar() { return sonar; }
@@ -120,36 +123,58 @@ private:
 	//void getReturnPath();	
 
 	int water = ICEMAN_DEFAULT_WATER;
-	int sonar = 999;//ICEMAN_DEFAULT_SONAR;
+	int sonar = ICEMAN_DEFAULT_SONAR;
 	int nuggs = 0;
 	int numBarrels = 0;
+	bool isReturning = false;
 };
 
 const int PROTESTER_MAX_HEALTH = 5;
+const int PROTESTER_PERPENDICULAR_THRESHOLD = 200;
+const int DISTANCE_TO_OIL_TUNNEL = 30;
 class Protester : public Actor {
 public:
-	Protester(StudentWorld& world, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0);
+	Protester(StudentWorld& world, int level, int startX, int startY, Direction dir = left, double size = 1.0, unsigned int depth = 0)
+		: Actor(world, PROTESTER_MAX_HEALTH, IID_PROTESTER, startX, startY, dir, size, depth), waitTicks(std::max(0, 3 - (level / 4))) {
+		updateNumSquares();
 
-	void doSomething() { }
-	void beAnnoyed(int annoy_value) { } // Francisco
-	virtual void beBribed() { }         // Aaron
+	}
+	
 
+
+
+	void doSomething();
+	void beAnnoyed(int annoy_value); // Francisco
+	virtual void beBribed();
+	
+	
+	
 protected:
-	void moveTowardsOilField() {} // Francisco
-	bool attemptShout() { return true; }        // Francisco
-	bool attemptMoveToIceman() { return true; } // Aaron
-	void pickNewDirection() {};    // Aaron
+	bool willCollide(std::pair<int, int> new_pos);
 
-	bool isResting() { return true; }            // Aaron
-	bool straightLineToIceman() { return true; } // Francisco
-	bool isFacingIceman() { return true; }     // Aaron
-	void updateRestTicks() {}      // Francisco
 
+
+	void moveTowardsOilField(); // Francisco
+	bool attemptShout(); //{ return false; }        // Francisco
+	bool attemptMoveToIceman();
+	void pickNewDirection();
+
+	bool isResting();
+	bool isFacingIceman(); //{ return true; }     // Francisco
+	bool straightLineToIceman();
+	void updateNumSquares();
+
+	
+	
+	bool leavingOilField = false;
 	int waitTicks;
-	bool leavingOilField;
-
-	int ticksSinceLastPerpendicularTurn;
-
+	int currentWaitTicks = waitTicks;
+	int moveTicks = DISTANCE_TO_OIL_TUNNEL;
+	int numSquaresToMoveInCurrentDirection = 0;
+	int ticksSinceLastPerpendicularTurn = PROTESTER_PERPENDICULAR_THRESHOLD + 1;
+	int shoutCooloff = 0;
+private:
+	std::vector<std::pair<int, int>> visitedCoordinates;
 };
 
 const int ICE_DEPTH = 3;
@@ -186,6 +211,7 @@ public:
 protected:
 	void affectPlayerInRadius();
 	virtual void updatePlayerInventory() = 0;
+	virtual void affectObjectInRadius(std::unique_ptr<Object>& object) { };
 
 	const unsigned int obtainSoundEffect;
 	int scoreValue;
@@ -223,7 +249,7 @@ protected:
 	bool checkRadius();
 
 	virtual void updatePlayerInventory() = 0;
-	virtual void affectObjectInRadius(std::unique_ptr<Actor>& object) {}
+	virtual void affectObjectInRadius(std::unique_ptr<Object>& object) { };
 };
 const unsigned int BARREL_PICKUP_SCORE = 1'000;
 class Barrel : public HiddenGoodie {
@@ -252,6 +278,7 @@ private:
 	int lifespan = 0;
 
 };
+
 const unsigned int NUGG_PICKUP_SCORE = 10;
 const int NUGG_LIFESPAN = 100;
 class Nugg : public HiddenGoodie {
@@ -267,9 +294,11 @@ public:
 
 private:
 	void updatePlayerInventory();
+	virtual void affectObjectInRadius(std::unique_ptr<Object>& object);
 
 	int lifespan = NUGG_LIFESPAN;
 };
+
 const int SQUIRT_TRAVEL_DISTANCE = 4;
 class Squirt : public Prop {
 public:
@@ -290,7 +319,7 @@ public:
 	bool checkRadius();
 	void affectPlayerInRadius();
 	void affectObjectInRadius(std::unique_ptr<Actor>& object);
-	void move();
+	
 private:
 	int lifespan = 0;
 	std::pair<int, int> currentPosition;
@@ -349,6 +378,7 @@ const unsigned int DEFAULT_ICE_DESTROY_RANGE = 4;
 
 class Ice {
 public:
+	void calculateExitPaths();
 	Ice(StudentWorld& world);
 	// smart pointers mean that we don't have to delete anything ourselves
 
@@ -362,7 +392,8 @@ public:
 
 	size_t getNumOpenSquares() { return openSquares.size(); }
 	size_t getNumIceSquares() { return iceSquares.size(); }
-
+	
+	std::array<std::array<std::optional<std::pair<int, int>>, VIEW_HEIGHT>, VIEW_WIDTH> previousBlock;
 private:
 	// a less disgusting way to write this would be appreciated
 	// using namespace std would just be a stopgap
@@ -375,7 +406,7 @@ private:
 
 	void populateAvailableSquares();
 
-	void calculateExitPaths();
+	
 
 	StudentWorld& w;
 };
