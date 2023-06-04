@@ -4,6 +4,8 @@
 #include <array>
 #include <random>
 #include <bitset>
+#include <queue>
+#include <thread>
 
 // distance formula time
 float Object::getDistanceTo(Object& other) {
@@ -80,7 +82,7 @@ bool Actor::moveInDirection(Direction dir) {
 void IceMan::doSomething() {
 	if (!isDead()) {
 		// remove intersecting ice
-
+		
 		if (w.getIce()->destroyIce(getX(), getY(), ACTOR_HEIGHT, ACTOR_HEIGHT))
 			w.playSound(SOUND_DIG);
 		int key;
@@ -116,7 +118,8 @@ void IceMan::doSomething() {
 				}
 				break;
 			case KEY_PRESS_ESCAPE:
-				beAnnoyed(INSTAKILL_DAMAGE);
+			
+				//beAnnoyed(INSTAKILL_DAMAGE);
 				break;
 			case 'Z':
 			case 'z':
@@ -150,28 +153,123 @@ void IceMan::beAnnoyed(int annoy_value) {
 		w.playSound(SOUND_PLAYER_GIVE_UP);
 	}
 }
+bool Protester::isBackAtStart() {
+	return visitedCoordinates.back().first == 60 and visitedCoordinates.back().second == 60;
+	
+}
 
-void Protester::doSomething() {
-	if (!isDead()) {
-		if (!isResting()) {
-			if (leavingOilField) {
-				moveTowardsOilField();
-			}
-			else if (!attemptShout()) {
-				if (!attemptMoveToIceman()) {
-					pickNewDirection();
+GraphObject::Direction changeDirection(std::pair<int,int> current, std::pair<int,int> previous) { //calculates change in direction
+	if (current.first < previous.first) {
+		return GraphObject::right;
+	}
+	else if (current.first > previous.first) {
+		return GraphObject::left;
+	}
+	else if (current.second < previous.second) {
+		return GraphObject::up;
+
+	}
+	else {
+		return GraphObject::down;
+	}
+}
+void Protester::moveTowardsOilField(int i) //moves to center of field
+
+{
+	
+	auto current = std::make_pair<int, int>(getX(), getY());
+	auto previous = w.getIce()->getPrevBlock(getX(), getY());
+	auto dir = changeDirection(current, previous.value());
+	setDirection(dir);
+	moveTo(previous->first,previous->second);
+
+
+
+}
+void Ice::calculateExitPaths() {
+	int path_point_x = RETURN_POINT_X;
+	int path_point_y = RETURN_POINT_Y;
+
+	// this is effectively a 60x60 (objects will never be further than that)
+	// array of bools
+	std::bitset<(RETURN_POINT_X* (RETURN_POINT_Y + 1) + RETURN_POINT_X + 1)> seen_points(false);
+	std::queue<int> path_points;
+
+	// the real deal will use the actors as stopping points
+	// but this will be useful as a test case
+
+	// hacky way to condense two points into a single unique value
+	int point_hash = path_point_x + (path_point_y * (RETURN_POINT_Y + 1));
+	seen_points[point_hash] = true;
+	path_points.push(point_hash);
+
+	while (!path_points.empty()) {
+
+		auto current_point = path_points.front();
+		path_points.pop();
+		path_point_x = current_point % (RETURN_POINT_Y + 1);
+		path_point_y = current_point / (RETURN_POINT_Y + 1);
+
+		//std::cout << current_point << ' ' << path_point_x << ' ' << path_point_y << '\n';
+
+		// find next points
+		std::array<std::pair<int, int>, 4> neighbors = {
+			std::make_pair(path_point_x + 1, path_point_y), //right
+			std::make_pair(path_point_x - 1, path_point_y), //left
+			std::make_pair(path_point_x, path_point_y + 1),	//up
+			std::make_pair(path_point_x, path_point_y - 1)	//down
+		};
+
+		for (auto& point : neighbors) {
+			// check if point is within bounds
+			//std::cout << "Test " << point.first << ' ' << point.second << '\n';
+			if (point.first >= 0 and point.first <= RETURN_POINT_X
+				and point.second >= 0 and point.second <= RETURN_POINT_Y) {
+				// check if point is an open space
+				if (!w.isIntersectingBoulder(point.first, point.second)
+					and !w.isIntersectingIce(point.first, point.second)) {
+					// point cannot have been seen already
+					int prospective_point_hash = point.first + (point.second * (RETURN_POINT_Y + 1));
+					if (!seen_points[prospective_point_hash]) {
+						seen_points[prospective_point_hash] = true;
+						path_points.push(prospective_point_hash);
+						prevSpaces[point.first][point.second] = std::make_pair(path_point_x, path_point_y);
+						//std::cout << point.first << ' ' << point.second << ' ' << prospective_point_hash << '\n';
+					}
 				}
 			}
-			ticksSinceLastPerpendicularTurn++;
 		}
 	}
 }
+void Protester::doSomething() {
+	if (!isDead()) {
+
+		if (!isResting()) {
+			if (!isAnnoyed) {
+				if (isFacingIceman()) {
+					moveInDirection(getDirection());
+				}
+				else if (!attemptShout()) {
+					if (!attemptMoveToIceman()) {
+						pickNewDirection();
+					}
+
+				}
+				ticksSinceLastPerpendicularTurn++;
+			}
+			else if(isAnnoyed){
+				moveTowardsOilField();
+			}
+		}
+	}
+}
+
 
 void Protester::beAnnoyed(int annoy_value)
 {
 	health -= annoy_value;
 	if (health <= 0) {
-		dead = true;
+		isAnnoyed = true;
 		w.playSound(SOUND_PROTESTER_GIVE_UP);
 	}
 	else { w.playSound(SOUND_PROTESTER_ANNOYED); }
@@ -264,41 +362,24 @@ void Protester::pickNewDirection() {
 	numSquaresToMoveInCurrentDirection--;
 }
 
-void Protester::moveToCenter() {
-	moveTo(getX() - 1, getY());
-	moveTicks--;
+
+std::optional<std::pair<int, int>> Ice::getPrevBlock(int x, int y) {
+	return prevSpaces.at(x).at(y);
 }
-
-void Protester::moveTowardsOilField() //moves to center of field
-
-{ //go from 60,60 to 30,60
-
-	if (moveTicks > 0) {
-		moveToCenter();
-	}
+const int RETURN_POINT_X = VIEW_WIDTH - ACTOR_HEIGHT;
+const int RETURN_POINT_Y = VIEW_HEIGHT - ACTOR_HEIGHT;
 
 
-
-
-}
-
-const int SHOUT_COOLOFF_LENGTH = 15;
+// extremely glorious bracket staircase
 bool Protester::attemptShout() {
-	if (getDistanceToPlayer() <= 4 and isFacingIceman()) {
-		if (shoutCooloff <= 0) {
-			w.playSound(SOUND_PROTESTER_YELL);
-			w.getPlayer()->beAnnoyed(2);
-			shoutCooloff = SHOUT_COOLOFF_LENGTH;
-		}
-		else if (shoutCooloff > 0) {
-			shoutCooloff--;
-		}
+	if (getDistanceToPlayer() <= 4) {
+		w.playSound(SOUND_PROTESTER_YELL);
+		w.getPlayer()->beAnnoyed(2);
+		waitTicks = 50;
 		return true;
 	}
-	else
-		return false; 
+	else { return false; }
 }
-
 bool Protester::willCollide(std::pair<int, int> new_pos) {
 	if (!Actor::willCollide(new_pos)) {
 		for (auto& object : w.getObjects()) {
@@ -678,6 +759,7 @@ bool Ice::destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsign
 
 	if (destroyed_ice)
 		populateAvailableSquares();
+		calculateExitPaths();
 
 	return destroyed_ice;
 }
@@ -763,4 +845,9 @@ double Squirt::getDistanceToActor(std::unique_ptr<Actor>& object) { return 0.0; 
 
 bool Squirt::checkRadius() { return true; }
 void Squirt::affectPlayerInRadius() {}
-void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object) { }
+void Squirt::affectObjectInRadius(std::unique_ptr<Actor>& object) {
+	
+
+
+
+}
