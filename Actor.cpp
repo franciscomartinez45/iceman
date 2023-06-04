@@ -173,19 +173,10 @@ GraphObject::Direction changeDirection(std::pair<int,int> current, std::pair<int
 		return GraphObject::down;
 	}
 }
-void Protester::moveTowardsOilField(int i) //moves to center of field
 
-{
-	
-	auto current = std::make_pair<int, int>(getX(), getY());
-	auto previous = w.getIce()->getPrevBlock(getX(), getY());
-	auto dir = changeDirection(current, previous.value());
-	setDirection(dir);
-	moveTo(previous->first,previous->second);
+const int RETURN_POINT_X = VIEW_WIDTH - ACTOR_HEIGHT;
+const int RETURN_POINT_Y = VIEW_HEIGHT - ACTOR_HEIGHT;
 
-
-
-}
 void Ice::calculateExitPaths() {
 	int path_point_x = RETURN_POINT_X;
 	int path_point_y = RETURN_POINT_Y;
@@ -256,6 +247,7 @@ void Protester::doSomething() {
 
 				}
 				ticksSinceLastPerpendicularTurn++;
+				w.getIce()->calculateExitPaths();
 			}
 			else if(isAnnoyed){
 				moveTowardsOilField();
@@ -264,7 +256,19 @@ void Protester::doSomething() {
 	}
 }
 
+void Protester::moveTowardsOilField() //moves to center of field
 
+{
+
+	auto current = std::make_pair<int, int>(getX(), getY());
+	auto previous = w.getIce()->getPrevBlock(getX(), getY());
+	auto dir = changeDirection(current, previous.value());
+	setDirection(dir);
+	moveTo(previous->first, previous->second);
+
+
+
+}
 void Protester::beAnnoyed(int annoy_value)
 {
 	health -= annoy_value;
@@ -366,8 +370,6 @@ void Protester::pickNewDirection() {
 std::optional<std::pair<int, int>> Ice::getPrevBlock(int x, int y) {
 	return prevSpaces.at(x).at(y);
 }
-const int RETURN_POINT_X = VIEW_WIDTH - ACTOR_HEIGHT;
-const int RETURN_POINT_Y = VIEW_HEIGHT - ACTOR_HEIGHT;
 
 
 // extremely glorious bracket staircase
