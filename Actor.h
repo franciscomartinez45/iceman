@@ -303,20 +303,13 @@ const int SQUIRT_TRAVEL_DISTANCE = 4;
 class Squirt : public Prop {
 public:
 	Squirt(StudentWorld& world, int startX, int startY, Direction dir, double size = 1.0, unsigned int depth = 1.0)
-		: Prop(world, true, true, ITEM_PICKUP_DISTANCE, IID_WATER_SPURT, startX, startY, dir, size, depth) {
-		affectPlayer = false;
-		affectActors = true;
-		setVisible(true);
-		lifespan = SQUIRT_TRAVEL_DISTANCE;
+		: Prop(world, false, true, ITEM_PICKUP_DISTANCE, IID_WATER_SPURT, startX, startY, dir, size, depth),
+		lifespan(SQUIRT_TRAVEL_DISTANCE) {
 		currentPosition.first = startX;
 		currentPosition.second = startY;
-
 	}
 	void doSomething();
-	double getDistanceToPlayer();
-	double getDistanceToActor(std::unique_ptr<Object>& object);
 
-	bool checkRadius();
 	void affectPlayerInRadius();
 	void affectObjectInRadius(std::unique_ptr<Object>& object);
 	
