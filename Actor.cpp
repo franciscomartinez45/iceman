@@ -726,12 +726,8 @@ void Squirt::doSomething() {
 
 
 		if (w.getIce()->getBlock(currentPosition.first, currentPosition.second) == nullptr) {
-			for (auto& p : w.getObjects()) {
-				if (p->isActor() and p->getX() == currentPosition.first and p->getY() == currentPosition.second) {
-					p->beAnnoyed(ANNOYANCE_POINTS);
-					dead = true;
-					lifespan = 0;
-				}
+			if (checkRadius()) {
+				dead = true;
 			}
 			moveTo(currentPosition.first, currentPosition.second);
 			lifespan--;
@@ -744,6 +740,12 @@ void Squirt::doSomething() {
 
 	else { dead = true; }
 }
+
+void Squirt::affectPlayerInRadius() {}
+void Squirt::affectObjectInRadius(std::unique_ptr<Object>& object) {
+	object->beAnnoyed(ANNOYANCE_POINTS);
+}
+
 
 Ice::Ice(StudentWorld& world) : w(world) {
 	// from <ranges>
@@ -863,15 +865,4 @@ void Ice::populateAvailableSquares() {
 	for (auto i : iceSquares) {
 		std::cout << i.first << ' ' << i.second << '\n';
 	}*/
-}
-double Squirt::getDistanceToPlayer() { return 0.0; }
-double Squirt::getDistanceToActor(std::unique_ptr<Object>& object) { return 0.0; }
-
-bool Squirt::checkRadius() { return true; }
-void Squirt::affectPlayerInRadius() {}
-void Squirt::affectObjectInRadius(std::unique_ptr<Object>& object) {
-	
-
-
-
 }
