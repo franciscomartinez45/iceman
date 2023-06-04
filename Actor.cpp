@@ -153,10 +153,7 @@ void IceMan::beAnnoyed(int annoy_value) {
 		w.playSound(SOUND_PLAYER_GIVE_UP);
 	}
 }
-bool Protester::isBackAtStart() {
-	return visitedCoordinates.back().first == 60 and visitedCoordinates.back().second == 60;
-	
-}
+
 
 GraphObject::Direction changeDirection(std::pair<int,int> current, std::pair<int,int> previous) { //calculates change in direction
 	if (current.first < previous.first) {
