@@ -1,26 +1,25 @@
 #include "Actor.h"
 #include "StudentWorld.h"
-#include <cmath>
-#include <array>
-#include <random>
 #include <bitset>
+#include <cmath>
 #include <queue>
-#include <thread>
+#include <random>
+#include <future>
 
 // distance formula time
 float Object::getDistanceTo(Object& other) {
-	return sqrt(pow(this->getX() - other.getX(), 2) + pow(this->getY() - other.getY(), 2));
+	return float(sqrt(pow(this->getX() - other.getX(), 2) + pow(this->getY() - other.getY(), 2)));
 }
 
 float Object::getDistanceTo(std::pair<unsigned int, unsigned int> p) {
-	return sqrt(pow(this->getX() - p.first, 2) + pow(this->getY() - p.second, 2));
+	return float(sqrt(pow(this->getX() - p.first, 2) + pow(this->getY() - p.second, 2)));
 }
 
-bool Object::contains(unsigned int x, unsigned int y) {
+bool Object::contains(int x, int y) {
 	return ((x >= getX()) and (x < getX() + int(getSize() * 4)) and (y >= getY()) and (y < getY() + int(getSize() * 4)));
 }
 
-bool Object::intersects(unsigned int x, unsigned int y, unsigned int x_size, unsigned int y_size) {
+bool Object::intersects(int x, int y, int x_size, int y_size) {
 	return (contains(x, y) or contains(x + x_size - 1, y + y_size - 1)
 		or contains(x, y + y_size - 1) or contains(x + x_size - 1, y));
 }
@@ -762,10 +761,15 @@ bool Ice::destroyIce(unsigned int x, unsigned int y, unsigned int x_size, unsign
 		}
 	}
 
-	if (destroyed_ice)
+	// this probably dosn't do any actual threading
+	// but such are deadlines
+	if (destroyed_ice) {
 		populateAvailableSquares();
+		auto async_exit = std::async(std::launch::async, [&] { calculateExitPaths(); });
+	}
+
 	if (destroyed_ice or w.getPlayer()->hasMovedThisTick())
-		calculateExitPaths(true);
+		auto async_exit = std::async(std::launch::async, [&] { calculateExitPaths(true); });
 
 	return destroyed_ice;
 }
@@ -851,6 +855,8 @@ void Ice::calculateExitPaths(bool toPlayer) {
 	int path_point_x = (!toPlayer) ? PROTESTER_SPAWN_X : w.getPlayer()->getX();
 	int path_point_y = (!toPlayer) ? PROTESTER_SPAWN_Y : w.getPlayer()->getY();
 	auto& path_array = (!toPlayer) ? prevSpaces : prevSpacesPlayer;
+
+	//w.getMutex().lock();
 
 	// this is effectively a 60x60 (objects will never be further than that)
 	// array of bools
