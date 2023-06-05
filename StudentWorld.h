@@ -21,10 +21,7 @@ class StudentWorld : public GameWorld
 {
 public:
 	StudentWorld(std::string assetDir)
-		: GameWorld(assetDir)
-	{
-		srand(time(NULL));
-	}
+		: GameWorld(assetDir) {}
 
 	virtual int init();
 
@@ -67,6 +64,8 @@ private:
 	bool vetIceSpawnCoords(std::pair<unsigned int, unsigned int> p,
 		unsigned int x_range_start, unsigned int x_range_end, unsigned int y_range_start, unsigned int y_range_end);
 
+	void attemptSpawnProtester();
+
 	int getPlayerHealth() { return double(player->getHealth()) / double(ICEMAN_MAX_HEALTH) * 100; }
 
 	void setStatusBar();
@@ -76,6 +75,10 @@ private:
 	std::unique_ptr<Ice> ice = nullptr;
 
 	std::default_random_engine generator;
+
+	int targetProtesters;
+	int protesterAddTime;
+	int protesterAddTimer = 0;
 };
 
 #endif // STUDENTWORLD_H_
