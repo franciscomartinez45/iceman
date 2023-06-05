@@ -705,42 +705,46 @@ bool Boulder::hasBoulderUnder() {
 	}
 	return false;
 }
-
 const int ANNOYANCE_POINTS = 2;
 void Squirt::doSomething() {
-	if (lifespan > 0 and !isDead()) {
-		switch (w.getPlayer()->getDirection()) {
-		case GraphObject::right:
-			currentPosition.first++;
-			break;
-		case GraphObject::left:
-			currentPosition.first--;
-			break;
-		case GraphObject::up:
-			currentPosition.second++;
-			break;
-		case GraphObject::down:
-			currentPosition.second--;
-			break;
-		}
+	if (getY() <= VIEW_HEIGHT - ACTOR_HEIGHT and getX()<VIEW_WIDTH-1 and getX()>0 and getY()>0) {
+		if (lifespan > 0 and !isDead()) {
+			switch (w.getPlayer()->getDirection()) {
+			case GraphObject::right:
+				currentPosition.first++;
+				break;
+			case GraphObject::left:
+				currentPosition.first--;
+				break;
+			case GraphObject::up:
+				currentPosition.second++;
+				break;
+			case GraphObject::down:
+				currentPosition.second--;
+				break;
+			}
 
 
-		if (w.getIce()->getBlock(currentPosition.first, currentPosition.second) == nullptr) {
-			if (checkRadius()) {
+			if (w.getIce()->getBlock(currentPosition.first, currentPosition.second) == nullptr) {
+				if (checkRadius()) {
+					dead = true;
+				}
+				moveTo(currentPosition.first, currentPosition.second);
+				lifespan--;
+			}
+			else {
+				lifespan = 0;
 				dead = true;
 			}
-			moveTo(currentPosition.first, currentPosition.second);
-			lifespan--;
 		}
 		else {
-			lifespan = 0;
 			dead = true;
 		}
 	}
-
-	else { dead = true; }
+	else {
+		dead = true;
+	}
 }
-
 void Squirt::affectPlayerInRadius() {}
 void Squirt::affectObjectInRadius(std::unique_ptr<Object>& object) {
 	object->beAnnoyed(ANNOYANCE_POINTS);
