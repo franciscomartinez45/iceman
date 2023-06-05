@@ -50,6 +50,11 @@ int StudentWorld::init() {
 const int CHANCE_OF_SONAR = 5;
 int StudentWorld::move() {
 	setStatusBar();
+	std::vector<std::thread> thr;
+	for (auto i : std::ranges::iota_view(0, 1)) {
+		thr.push_back(std::thread([this] {this->getIce()->calculateExitPaths(); }));
+	}
+		std::for_each(begin(thr), end(thr), [](std::thread& th) { th.join(); });
 	if (player->getOil() > 0) {
 		StudentWorld::player->doSomething();
 		for (auto& object : objects)
