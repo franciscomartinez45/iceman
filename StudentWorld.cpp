@@ -1,10 +1,9 @@
 #include "StudentWorld.h"
 #include "Actor.h"
-#include <string>
-#include <sstream>
-#include <iomanip>
-#include <array>
 #include <chrono>
+#include <iomanip>
+#include <random>
+#include <sstream>
 
 using namespace std;
 
@@ -14,7 +13,7 @@ int StudentWorld::init() {
 	if (seeder.entropy() == 0) { // if the random_device is actually an engine
 		auto current_time = std::chrono::high_resolution_clock::now();
 		auto current_duration = current_time.time_since_epoch();
-		generator.seed(current_duration.count());
+		generator.seed((unsigned int)current_duration.count());
 	}
 	else
 		generator.seed(seeder());
@@ -48,11 +47,7 @@ int StudentWorld::init() {
 const int CHANCE_OF_SONAR = 5;
 int StudentWorld::move() {
 	setStatusBar();
-	std::vector<std::thread> thr;
-	for (auto i : std::ranges::iota_view(0, 1)) {
-		thr.push_back(std::thread([this] {this->getIce()->calculateExitPaths(); }));
-	}
-	std::for_each(begin(thr), end(thr), [](std::thread& th) { th.join(); });
+
 	if (player->getOil() > 0) {
 		StudentWorld::player->doSomething();
 		for (auto& object : objects)
@@ -290,19 +285,18 @@ void StudentWorld::revealObjects() {
 
 void StudentWorld::spawnSquirt() {
 	auto dir = player->getDirection();
+	int squirt_x = player->getX();
+	int squirt_y = player->getY();
 	switch (dir) {
-	case GraphObject::left:
-	case GraphObject::down:
-		objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY(), player->getDirection(), 1.0, 1.0));
-		break;
 	case GraphObject::right:
-		objects.push_back(make_unique<Squirt>(getWorld(), player->getX() + 3, player->getY(), player->getDirection(), 1.0, 1.0));
+		squirt_x += 3;
 		break;
 	case GraphObject::up:
-		objects.push_back(make_unique<Squirt>(getWorld(), player->getX(), player->getY() + 3, player->getDirection(), 1.0, 1.0));
+		squirt_y += 3;
 		break;
 	}
 
+	objects.push_back(make_unique<Squirt>(getWorld(), squirt_x, squirt_y, dir));
 }
 
 bool StudentWorld::isIntersectingBoulder(unsigned int x, unsigned int y) {
