@@ -3,12 +3,12 @@
 
 #include "GraphObject.h"
 #include "GameWorld.h"
-#include <vector>
-#include <ranges> // requires C++20
 #include <algorithm>
-#include <optional>
 #include <array>
-#include<list>
+#include <future>
+#include <optional>
+#include <ranges> // requires C++20
+#include <vector>
 
 const int ACTOR_HEIGHT = 4;
 const int ACTOR_WIDTH_LIMIT = VIEW_WIDTH - 4;
@@ -25,8 +25,8 @@ public:
 
 	float getDistanceTo(Object& other);
 	float getDistanceTo(std::pair<unsigned int, unsigned int> p);
-	bool contains(unsigned int x, unsigned int y);
-	bool intersects(unsigned int x, unsigned int y, unsigned int x_size = ACTOR_HEIGHT, unsigned int y_size = ACTOR_HEIGHT);
+	bool contains(int x, int y);
+	bool intersects(int x, int y, int x_size = ACTOR_HEIGHT, int y_size = ACTOR_HEIGHT);
 
 	bool isDead() { return dead; }
 	bool isActor() { return actorStatus; }
@@ -322,7 +322,7 @@ private:
 const int SQUIRT_TRAVEL_DISTANCE = 4;
 class Squirt : public Prop {
 public:
-	Squirt(StudentWorld& world, int startX, int startY, Direction dir, double size = 1.0, unsigned int depth = 1.0)
+	Squirt(StudentWorld& world, int startX, int startY, Direction dir, double size = 1.0, unsigned int depth = 1)
 		: Prop(world, false, true, ITEM_PICKUP_DISTANCE, IID_WATER_SPURT, startX, startY, dir, size, depth),
 		lifespan(SQUIRT_TRAVEL_DISTANCE) {
 		currentPosition.first = startX;
@@ -420,8 +420,6 @@ private:
 	std::vector<std::pair<unsigned int, unsigned int>> iceSquares;
 
 	void populateAvailableSquares();
-
-
 
 	StudentWorld& w;
 };
