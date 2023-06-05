@@ -5,8 +5,8 @@
 #include "GameConstants.h"
 #include "Actor.h"
 #include <string>
-#include <memory>
 #include <list>
+#include <memory>
 #include <random>
 
 enum class ObjectType {
@@ -14,7 +14,6 @@ enum class ObjectType {
 	Nugg,
 	Barrel,
 	Sonar
-
 };
 
 class StudentWorld : public GameWorld
@@ -66,7 +65,7 @@ private:
 
 	void attemptSpawnProtester();
 
-	int getPlayerHealth() { return double(player->getHealth()) / double(ICEMAN_MAX_HEALTH) * 100; }
+	int getPlayerHealth() { return int(int(double(player->getHealth()) / double(ICEMAN_MAX_HEALTH) * 100)); }
 
 	void setStatusBar();
 
@@ -76,8 +75,8 @@ private:
 
 	std::default_random_engine generator;
 
-	int targetProtesters;
-	int protesterAddTime;
+	int targetProtesters = 0;
+	int protesterAddTime = 0;
 	int protesterAddTimer = 0;
 };
 
