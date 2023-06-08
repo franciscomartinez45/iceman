@@ -193,7 +193,67 @@ void ProtesterBase::doSomething() {
 		}
 	}
 }
+bool ProtesterBase::isFacingIceman() {
 
+
+	auto player = std::pair<int, int>(w.getPlayer()->getX(), w.getPlayer()->getY());
+	auto dir = none;
+	if (player.first == getX()) { // same row
+		if (player.second < getY()) {//protester is to the right of iceman
+			dir = down; //
+
+		}
+		else if (player.second >= getY()) { //protester is to the left or at the position of iceman
+			dir = up;
+		}
+	}
+	else if (player.second == getY()) { //same column
+		if (player.first < getX()) {//protester is above iceman
+			dir = left;
+		}
+		else if (player.first >= getX()) {//protester is below or same height as iceman
+			dir = right;
+		}
+	}
+
+	if (dir == getDirection()) { //if facing iceman check for empty path
+		switch (dir) {
+		case left:
+			for (int i : std::ranges::iota_view(player.first, getX())) { //checks all values on same row from player to protester for collision
+				if (w.getIce()->getBlock(i, getY()) != nullptr) {
+					return false;
+				}
+			}
+			break;
+
+		case right:
+			for (int i : std::ranges::iota_view(getX(), player.first)) { //checks all blocks to the right of protester
+				if (w.getIce()->getBlock(i, getY()) != nullptr) {
+					return false;
+				}
+			}
+			break;
+		case up:
+			for (int i : std::ranges::iota_view(getY(), player.second)) { //from protester y to player y
+				if (w.getIce()->getBlock(getX(), i) != nullptr) {
+					return false;
+				}
+			}
+			break;
+		case down:
+			for (int i : std::ranges::iota_view(player.second, getY())) { //from iceman y to protester y
+				if (w.getIce()->getBlock(getX(), i) != nullptr) {
+					return false;
+				}
+			}
+			break;
+		}
+		return true;
+	}
+	else {
+		return false;
+	}
+}
 void ProtesterBase::moveTowardsOilField() //moves to center of field
 
 {
@@ -367,67 +427,8 @@ bool ProtesterBase::isResting() {
 }
 
 
-bool ProtesterBase::isFacingIceman() {
 
 
-	auto player = std::pair<int, int>(w.getPlayer()->getX(), w.getPlayer()->getY());
-	auto dir = none;
-	if (player.first == getX()) { // same row
-		if (player.second < getY()) {//protester is to the right of iceman
-			dir = down; //
-
-		}
-		else if (player.second >= getY()) { //protester is to the left or at the position of iceman
-			dir = up;
-		}
-	}
-	else if (player.second == getY()) { //same column
-		if (player.first < getX()) {//protester is above iceman
-			dir = left;
-		}
-		else if (player.first >= getX()) {//protester is below or same height as iceman
-			dir = right;
-		}
-	}
-
-	if (dir == getDirection()) { //if facing iceman check for empty path
-		switch (dir) {
-		case left:
-			for (int i : std::ranges::iota_view(player.first, getX())) { //checks all values on same row from player to protester for collision
-				if (w.getIce()->getBlock(i, getY()) != nullptr) {
-					return false;
-				}
-			}
-			break;
-
-		case right:
-			for (int i : std::ranges::iota_view(getX(), player.first)) { //checks all blocks to the right of protester
-				if (w.getIce()->getBlock(i, getY()) != nullptr) {
-					return false;
-				}
-			}
-			break;
-		case up:
-			for (int i : std::ranges::iota_view(getY(), player.second)) { //from protester y to player y
-				if (w.getIce()->getBlock(getX(), i) != nullptr) {
-					return false;
-				}
-			}
-			break;
-		case down:
-			for (int i : std::ranges::iota_view(player.second, getY())) { //from iceman y to protester y
-				if (w.getIce()->getBlock(getX(), i) != nullptr) {
-					return false;
-				}
-			}
-			break;
-		}
-		return true;
-	}
-	else {
-		return false;
-	}
-}
 
 const double ANNOY_DISTANCE = 4.0;
 bool ProtesterBase::straightLineToIceman() {
